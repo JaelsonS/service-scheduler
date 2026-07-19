@@ -310,7 +310,7 @@ Passo a passo detalhado: [`docs/setup-externo.md`](docs/setup-externo.md).
 ### Backend (Render)
 
 1. **Language = Docker** (Render não oferece Java nativo). Use `backend/Dockerfile`.
-2. Root Directory: `backend` · Dockerfile Path: `backend/Dockerfile`
+2. Root Directory: `backend` · Dockerfile Path: `Dockerfile` (não `backend/Dockerfile` — isso duplica o path)
 3. Health check: `/actuator/health`
 4. Defina `DB_*`, `CORS_ALLOWED_ORIGINS`, `JWT_SECRET`, `ADMIN_*`, `SPRING_PROFILES_ACTIVE=prod`.
 5. A app escuta `PORT` (Render injeta automaticamente).

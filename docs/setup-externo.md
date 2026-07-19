@@ -88,7 +88,7 @@ Credenciais **somente desenvolvimento** (bootstrap):
 | Branch | `main` |
 | Region | Frankfurt (ou a mais próxima) |
 | Root Directory | `backend` |
-| Dockerfile Path | `backend/Dockerfile` |
+| Dockerfile Path | `Dockerfile` (só o nome — **não** use `backend/Dockerfile` se o Root Directory já é `backend`) |
 | Instance | **Free** |
 
 4. Não precisa de Build/Start Command — o Docker cuida disso.
