@@ -3,9 +3,11 @@ package com.jaelson.backend.service;
 import com.jaelson.backend.dto.auth.AuthTokenResponseDTO;
 import com.jaelson.backend.dto.auth.LoginRequestDTO;
 import com.jaelson.backend.entity.AdminUser;
+import com.jaelson.backend.enums.UserRole;
 import com.jaelson.backend.exception.AuthenticationFailedException;
 import com.jaelson.backend.exception.InvalidRefreshTokenException;
 import com.jaelson.backend.repository.AdminUserRepository;
+import com.jaelson.backend.repository.ClientUserRepository;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,13 +37,21 @@ class AuthServiceTest {
     private AdminUserRepository adminUserRepository;
 
     @Mock
+    private ClientUserRepository clientUserRepository;
+
+    @Mock
     private JwtService jwtService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(authenticationManager, adminUserRepository, jwtService);
+        authService = new AuthService(
+                authenticationManager,
+                adminUserRepository,
+                clientUserRepository,
+                jwtService
+        );
     }
 
     @Test
@@ -50,8 +61,8 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any())).thenReturn(
                 UsernamePasswordAuthenticationToken.authenticated("admin@example.com", null, java.util.List.of())
         );
-        when(jwtService.createAccessToken("admin@example.com")).thenReturn("access-token");
-        when(jwtService.createRefreshToken("admin@example.com")).thenReturn("refresh-token");
+        when(jwtService.createAccessToken("admin@example.com", UserRole.ADMIN)).thenReturn("access-token");
+        when(jwtService.createRefreshToken("admin@example.com", UserRole.ADMIN)).thenReturn("refresh-token");
         when(jwtService.getAccessTokenExpirationSeconds()).thenReturn(1800L);
 
         AuthTokenResponseDTO result = authService.login(new LoginRequestDTO("admin@example.com", "password"));
@@ -59,6 +70,7 @@ class AuthServiceTest {
         assertEquals("access-token", result.accessToken());
         assertEquals("refresh-token", result.refreshToken());
         assertEquals("Bearer", result.tokenType());
+        assertEquals("ADMIN", result.role());
         verify(authenticationManager).authenticate(any());
     }
 
@@ -77,6 +89,7 @@ class AuthServiceTest {
     void shouldRejectRefreshTokenForMissingUser() {
         Claims claims = org.mockito.Mockito.mock(Claims.class);
         when(jwtService.parseRefreshToken("refresh-token")).thenReturn(claims);
+        when(jwtService.extractRole(claims)).thenReturn(UserRole.ADMIN);
         when(claims.getSubject()).thenReturn("admin@example.com");
         when(adminUserRepository.findByEmailIgnoreCase("admin@example.com")).thenReturn(Optional.empty());
 

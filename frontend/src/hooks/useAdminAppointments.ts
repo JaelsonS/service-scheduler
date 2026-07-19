@@ -3,13 +3,16 @@ import {
   cancelAppointment,
   deleteAppointment,
   fetchAdminAppointments,
+  fetchAdminAppointmentSummary,
   updateAppointmentStatus,
+  type AppointmentSummary,
 } from '../api/appointments'
 import { getApiErrorMessage } from '../api/client'
 import type { Appointment, AppointmentStatus } from '../types/appointment'
 
-export function useAdminAppointments(dateFilter: string, page: number) {
+export function useAdminAppointments(dateFilter: string, search: string, page: number) {
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [summary, setSummary] = useState<AppointmentSummary | null>(null)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -19,20 +22,25 @@ export function useAdminAppointments(dateFilter: string, page: number) {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchAdminAppointments({
-        date: dateFilter || undefined,
-        page,
-        size: 10,
-      })
+      const [data, summaryData] = await Promise.all([
+        fetchAdminAppointments({
+          date: dateFilter || undefined,
+          q: search || undefined,
+          page,
+          size: 10,
+        }),
+        fetchAdminAppointmentSummary(dateFilter || undefined),
+      ])
       setAppointments(data.appointments)
       setTotalPages(data.totalPages)
       setTotalElements(data.totalElements)
+      setSummary(summaryData)
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível carregar os agendamentos'))
     } finally {
       setLoading(false)
     }
-  }, [dateFilter, page])
+  }, [dateFilter, page, search])
 
   useEffect(() => {
     void load()
@@ -64,6 +72,7 @@ export function useAdminAppointments(dateFilter: string, page: number) {
 
   return {
     appointments,
+    summary,
     totalPages,
     totalElements,
     loading,

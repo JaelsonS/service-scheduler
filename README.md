@@ -27,9 +27,39 @@ No Render, `CORS_ALLOWED_ORIGINS` pode listar URLs extras; o backend já libera 
 Use a URL estável da Vercel: https://service-scheduler-puce.vercel.app  
 (evite abrir links de deploy temporários `*-projects.vercel.app` no dia a dia).
 
-Credenciais da demo em produção: use as definidas em `ADMIN_EMAIL` / `ADMIN_PASSWORD` no Render (não use a senha de desenvolvimento).
+### Credenciais de demo
+
+| Papel | E-mail | Senha |
+|-------|--------|--------|
+| Admin | `admin@agendapro.local` | `Admin@12345` |
+| Cliente | cadastro livre em `/cadastro` | — |
+
+Em produção, o admin é o definido em `ADMIN_EMAIL` / `ADMIN_PASSWORD` no Render. Se a tabela de admin estiver vazia e as credenciais forem as padrão de desenvolvimento, o bootstrap em `prod` bloqueia a criação automática — configure valores explícitos no painel.
 
 Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
+
+---
+
+## Entrega DevClub (checklist)
+
+| Requisito | Como foi atendido |
+|-----------|-------------------|
+| Cliente agenda sem login | `POST /api/v1/appointments` público + home com slots |
+| Confirmação | Página `/confirmacao/:id` |
+| Admin lista / filtra / status / exclui | `/admin` com JWT `ADMIN` |
+| Responsivo + validação | Tailwind + Zod (front) / Bean Validation (back) |
+| Persistência | PostgreSQL (Supabase) + Flyway |
+| GitHub público + deploy | Links na seção [Demo](#demo) |
+| Conta de cliente (extra) | Cadastro/login opcional + `/minha-conta` |
+| Documentação | Este README + `docs/` |
+
+### Ferramentas de IA
+
+Desenvolvimento assistido por **Cursor** (Composer / Agent) para acelerar scaffolding, testes, CORS/deploy e documentação. O uso foi consciente:
+
+- eu defini escopo, regras de negócio e trade-offs;
+- a IA propôs código e diffs; revisei, adaptei e rodei `./mvnw test` / `npm run build`;
+- decisões finais e validação da demo pública ficaram sob responsabilidade do autor.
 
 ---
 
@@ -38,20 +68,22 @@ Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
 | Item | Situação |
 |------|----------|
 | Fluxo cliente (agendar → confirmar) | Pronto |
-| Área admin (JWT, lista, status, exclusão) | Pronto |
+| Conta cliente opcional (JWT `CLIENT`) | Pronto |
+| Área admin (JWT, busca, summary, status) | Pronto |
 | Testes backend (`./mvnw test`) | Pronto |
 | Build frontend (`npm run build`) | Pronto |
 | Documentação / ADRs | Pronto |
 | Código completo no GitHub | Pronto |
 | Deploy backend (Render) | Pronto |
-| Deploy frontend (Vercel) | Pronto (ajustar CORS se necessário) |
-| Screenshots no README | Pendente |
+| Deploy frontend (Vercel) | Pronto |
+| Screenshots no README | Pronto |
 
 ---
 
 ## Sumário
 
 - [Demo](#demo)
+- [Entrega DevClub (checklist)](#entrega-devclub-checklist)
 - [Status do MVP](#status-do-mvp)
 - [Descrição](#descrição)
 - [Arquitetura](#arquitetura)
@@ -74,7 +106,7 @@ Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
 
 ## Descrição
 
-### Área do cliente
+### Área do cliente (público)
 
 - Selecionar serviço
 - Informar nome e telefone
@@ -82,11 +114,18 @@ Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
 - Receber confirmação do agendamento
 - Horários ocupados não aparecem como disponíveis
 
+### Conta do cliente (opcional)
+
+- Cadastro e login com JWT (`CLIENT`)
+- Ver e cancelar os próprios agendamentos em `/minha-conta`
+- Ao agendar logado, o agendamento é vinculado à conta (nome/telefone pré-preenchidos)
+
 ### Área administrativa
 
-- Login com e-mail e senha (JWT)
+- Login com e-mail e senha (JWT `ADMIN`)
 - Listar agendamentos com paginação
-- Filtrar por data
+- Filtrar por data e buscar por nome/telefone (`q`)
+- Cards de resumo do dia (por status)
 - Alterar status (`AGENDADO` → `CONFIRMADO` → `CONCLUIDO` / `CANCELADO`)
 - Visualizar dados do cliente
 - Excluir agendamento
@@ -189,7 +228,7 @@ jdbc:postgresql://db.<PROJECT_REF>.supabase.co:5432/postgres
 cp backend/.env.example backend/.env
 ```
 
-As migrations Flyway (`V1` schema, `V2` seed de serviços, `V3` admin_users) são aplicadas automaticamente na subida da API.
+As migrations Flyway (`V1` schema, `V2` seed de serviços, `V3` admin_users, `V4` client_users) são aplicadas automaticamente na subida da API.
 
 ### 2. Backend
 
@@ -222,6 +261,7 @@ npm run dev
 ```
 
 - App: http://localhost:5173  
+- Login cliente: http://localhost:5173/entrar · Cadastro: http://localhost:5173/cadastro  
 - Login admin: http://localhost:5173/admin/login  
 
 ---
@@ -264,15 +304,26 @@ GET    /services
 POST   /appointments
 GET    /appointments/{id}
 GET    /appointments/availability?date=YYYY-MM-DD
-POST   /auth/login
+POST   /auth/login                 # admin
 POST   /auth/refresh
 POST   /auth/logout
+POST   /client/auth/register
+POST   /client/auth/login
 ```
 
-### Administrativo (Bearer JWT)
+### Cliente autenticado (Bearer JWT `CLIENT`)
 
 ```text
-GET    /admin/appointments?date=&page=&size=
+GET    /client/me
+GET    /client/appointments
+POST   /client/appointments/{id}/cancel
+```
+
+### Administrativo (Bearer JWT `ADMIN`)
+
+```text
+GET    /admin/appointments?date=&q=&page=&size=
+GET    /admin/appointments/summary?date=
 PATCH  /admin/appointments/{id}/status
 POST   /admin/appointments/{id}/cancel
 DELETE /admin/appointments/{id}
@@ -294,11 +345,11 @@ No profile `prod`, a documentação fica desabilitada por padrão (`SPRINGDOC_EN
 
 ## Fluxo da aplicação
 
-1. Cliente abre a home, escolhe serviço, data e horário livre.
+1. Visitante abre a home, escolhe serviço, data e horário livre (sem login).
 2. Backend valida regras (passado, serviço ativo, conflito) e persiste com índice único parcial.
-3. Cliente vê a página de confirmação.
-4. Admin autentica em `/admin/login`, recebe access + refresh JWT.
-5. Admin lista, filtra, confirma, conclui, cancela ou exclui agendamentos.
+3. Confirmação em `/confirmacao/:id`.
+4. Opcional: cliente cria conta (`/cadastro`), entra (`/entrar`) e gerencia agendamentos em `/minha-conta`.
+5. Admin autentica em `/admin/login` (JWT `ADMIN`), lista/busca/resumo, altera status ou exclui.
 6. Refresh renova a sessão; logout invalida o refresh token no servidor.
 
 ---
@@ -350,7 +401,7 @@ Resumo das decisões principais:
 | Persistência | Flyway + `ddl-auto=validate` |
 | API | REST versionada `/api/v1` + DTOs |
 | Concorrência | Validação na service + índice único parcial no Postgres |
-| Segurança | JWT apenas para admin; booking público |
+| Segurança | JWT multi-papel (`ADMIN` / `CLIENT`); booking público permanece |
 | Performance | Paginação, índices, LAZY, `open-in-view=false` |
 
 Detalhes e trade-offs: [`docs/architecture-decisions.md`](docs/architecture-decisions.md).
@@ -359,10 +410,10 @@ Detalhes e trade-offs: [`docs/architecture-decisions.md`](docs/architecture-deci
 
 ## Trade-offs
 
-- Autenticação de clientes ficou fora do escopo (desafio não exige).
+- Conta de cliente é **opcional** (híbrido): o desafio mínimo continua atendido sem login; a área autenticada demonstra JWT multi-papel.
 - Duração do serviço é persistida, mas a grade de horários do MVP usa slots fixos de 30 minutos.
 - Refresh tokens invalidados ficam em denylist em memória (adequado ao MVP single-instance; evoluir para persistência/Redis em escala).
-- Sem Docker/CI completo nesta entrega, para priorizar qualidade do fluxo principal.
+- Backend no Render via Docker (sem runtime Java nativo na plataforma).
 
 ---
 
@@ -380,19 +431,21 @@ Detalhes e trade-offs: [`docs/architecture-decisions.md`](docs/architecture-deci
 
 ## Screenshots
 
-Adicione imagens em `docs/screenshots/` e referencie aqui após o deploy:
-
-1. Home de agendamento — `docs/screenshots/01-home.png`
-2. Seleção de data/horários — `docs/screenshots/02-slots.png`
-3. Confirmação — `docs/screenshots/03-confirmacao.png`
-4. Login administrativo — `docs/screenshots/04-login.png`
-5. Tabela administrativa — `docs/screenshots/05-admin.png`
-
-```markdown
 ![Home](docs/screenshots/01-home.png)
-```
 
-> Sem screenshots e sem URL ao vivo, o recrutador avalia só o código — ainda vale, mas a demo visual aumenta muito a chance de entrevista.
+![Slots](docs/screenshots/02-slots.png)
+
+![Confirmação](docs/screenshots/03-confirmacao.png)
+
+![Login admin](docs/screenshots/04-login-admin.png)
+
+![Admin](docs/screenshots/05-admin.png)
+
+![Entrar cliente](docs/screenshots/06-entrar-cliente.png)
+
+![Cadastro](docs/screenshots/07-cadastro.png)
+
+![Minha conta](docs/screenshots/08-minha-conta.png)
 
 ---
 

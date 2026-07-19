@@ -5,6 +5,7 @@ const apiBaseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1
 const accessTokenKey = 'agendapro.accessToken'
 const refreshTokenKey = 'agendapro.refreshToken'
 const emailKey = 'agendapro.email'
+const roleKey = 'agendapro.role'
 
 /** Render free tier cold starts can take 30–60s. */
 const DEFAULT_TIMEOUT_MS = 60_000
@@ -21,12 +22,14 @@ export interface StoredAuthTokens {
   accessToken: string
   refreshToken: string
   email?: string
+  role?: string
 }
 
 interface RefreshResponse {
   accessToken: string
   refreshToken: string
   email: string
+  role: string
 }
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -37,12 +40,16 @@ export function getAccessToken(): string | null {
   return sessionStorage.getItem(accessTokenKey)
 }
 
-export function setTokens({ accessToken, refreshToken, email }: StoredAuthTokens): void {
+export function setTokens({ accessToken, refreshToken, email, role }: StoredAuthTokens): void {
   sessionStorage.setItem(accessTokenKey, accessToken)
   sessionStorage.setItem(refreshTokenKey, refreshToken)
 
   if (email) {
     sessionStorage.setItem(emailKey, email)
+  }
+
+  if (role) {
+    sessionStorage.setItem(roleKey, role)
   }
 }
 
@@ -50,6 +57,7 @@ export function clearTokens(): void {
   sessionStorage.removeItem(accessTokenKey)
   sessionStorage.removeItem(refreshTokenKey)
   sessionStorage.removeItem(emailKey)
+  sessionStorage.removeItem(roleKey)
 }
 
 apiClient.interceptors.request.use((config) => {
@@ -71,7 +79,8 @@ apiClient.interceptors.response.use(
 
     const originalRequest = error.config as RetryableRequestConfig
     const refreshToken = sessionStorage.getItem(refreshTokenKey)
-    const isAuthRequest = originalRequest.url?.startsWith('/auth/')
+    const isAuthRequest =
+      originalRequest.url?.startsWith('/auth/') || originalRequest.url?.includes('/client/auth/')
 
     if (originalRequest._retry || !refreshToken || isAuthRequest) {
       return Promise.reject(error)
@@ -92,8 +101,11 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       clearTokens()
 
-      if (window.location.pathname !== '/admin/login') {
+      const path = window.location.pathname
+      if (path.startsWith('/admin')) {
         window.location.assign('/admin/login')
+      } else if (path.startsWith('/minha-conta') || path.startsWith('/entrar')) {
+        window.location.assign('/entrar')
       }
 
       return Promise.reject(refreshError)

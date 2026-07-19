@@ -1,13 +1,11 @@
-import { CalendarDays, LayoutDashboard, LogOut } from 'lucide-react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { CalendarDays, LayoutDashboard, LogOut, UserRound } from 'lucide-react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { Button } from '../ui/Button'
 
 export function Navbar() {
-  const { isAuthenticated, logout } = useAuth()
-  const location = useLocation()
+  const { isAuthenticated, role, logout } = useAuth()
   const navigate = useNavigate()
-  const showLogout = isAuthenticated || location.pathname.startsWith('/admin')
 
   async function handleLogout() {
     try {
@@ -40,6 +38,32 @@ export function Navbar() {
           >
             Agendar
           </NavLink>
+
+          {isAuthenticated && role === 'CLIENT' ? (
+            <NavLink
+              to="/minha-conta"
+              className={({ isActive }) =>
+                `inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100'
+                }`
+              }
+            >
+              <UserRound className="h-4 w-4" />
+              Minha conta
+            </NavLink>
+          ) : (
+            <NavLink
+              to="/entrar"
+              className={({ isActive }) =>
+                `rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100'
+                }`
+              }
+            >
+              Entrar
+            </NavLink>
+          )}
+
           <NavLink
             to="/admin"
             className={({ isActive }) =>
@@ -51,7 +75,8 @@ export function Navbar() {
             <LayoutDashboard className="h-4 w-4" />
             Admin
           </NavLink>
-          {showLogout ? (
+
+          {isAuthenticated ? (
             <Button
               type="button"
               variant="secondary"

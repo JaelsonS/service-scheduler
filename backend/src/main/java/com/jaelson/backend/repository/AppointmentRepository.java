@@ -27,10 +27,34 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @Query("""
             SELECT a FROM Appointment a
             WHERE (:date IS NULL OR a.appointmentDate = :date)
+              AND (
+                    :q IS NULL
+                    OR LOWER(a.customerName) LIKE LOWER(CONCAT('%', CAST(:q AS string), '%'))
+                    OR a.customerPhone LIKE CONCAT('%', CAST(:q AS string), '%')
+                  )
             """)
     Page<Appointment> findAllFiltered(
             @Param("date") LocalDate date,
+            @Param("q") String q,
             Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = "service")
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.clientUser.id = :clientUserId
+            ORDER BY a.appointmentDate DESC, a.appointmentTime DESC
+            """)
+    List<Appointment> findAllByClientUserId(@Param("clientUserId") Long clientUserId);
+
+    @EntityGraph(attributePaths = {"service", "clientUser"})
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.id = :id AND a.clientUser.id = :clientUserId
+            """)
+    Optional<Appointment> findByIdAndClientUserId(
+            @Param("id") Long id,
+            @Param("clientUserId") Long clientUserId
     );
 
     @Query("""
@@ -42,6 +66,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("date") LocalDate date,
             @Param("cancelledStatus") AppointmentStatus cancelledStatus
     );
+
+    @Query("""
+            SELECT a.status, COUNT(a) FROM Appointment a
+            WHERE (:date IS NULL OR a.appointmentDate = :date)
+            GROUP BY a.status
+            """)
+    List<Object[]> countGroupedByStatus(@Param("date") LocalDate date);
 
     boolean existsByAppointmentDateAndAppointmentTimeAndStatusNot(
             LocalDate appointmentDate,

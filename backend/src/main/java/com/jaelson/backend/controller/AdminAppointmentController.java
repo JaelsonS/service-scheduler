@@ -3,6 +3,7 @@ package com.jaelson.backend.controller;
 import com.jaelson.backend.dto.appointment.AppointmentListResponseDTO;
 import com.jaelson.backend.dto.appointment.AppointmentResponseDTO;
 import com.jaelson.backend.dto.appointment.AppointmentStatusUpdateRequestDTO;
+import com.jaelson.backend.dto.appointment.AppointmentSummaryResponseDTO;
 import com.jaelson.backend.service.AppointmentService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -35,10 +36,20 @@ public class AdminAppointmentController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(appointmentService.list(date, page, size));
+        return ResponseEntity.ok(appointmentService.list(date, q, page, size));
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<AppointmentSummaryResponseDTO> summary(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate date
+    ) {
+        return ResponseEntity.ok(appointmentService.summary(date));
     }
 
     @PatchMapping("/{id}/status")

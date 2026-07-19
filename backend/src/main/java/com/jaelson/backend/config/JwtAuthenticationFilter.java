@@ -1,5 +1,6 @@
 package com.jaelson.backend.config;
 
+import com.jaelson.backend.enums.UserRole;
 import com.jaelson.backend.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -38,11 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 Claims claims = jwtService.parseAccessToken(authorization.substring(7));
+                UserRole role = jwtService.extractRole(claims);
                 UsernamePasswordAuthenticationToken authentication =
                         UsernamePasswordAuthenticationToken.authenticated(
                                 claims.getSubject(),
                                 null,
-                                AuthorityUtils.createAuthorityList("ROLE_ADMIN")
+                                AuthorityUtils.createAuthorityList("ROLE_" + role.name())
                         );
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);

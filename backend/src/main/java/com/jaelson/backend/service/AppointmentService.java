@@ -3,10 +3,13 @@ package com.jaelson.backend.service;
 import com.jaelson.backend.dto.appointment.AppointmentCreateRequestDTO;
 import com.jaelson.backend.dto.appointment.AppointmentListResponseDTO;
 import com.jaelson.backend.dto.appointment.AppointmentResponseDTO;
+import com.jaelson.backend.dto.appointment.AppointmentSummaryResponseDTO;
 import com.jaelson.backend.dto.appointment.AvailabilityResponseDTO;
 import com.jaelson.backend.entity.Appointment;
+import com.jaelson.backend.entity.ClientUser;
 import com.jaelson.backend.entity.Service;
 import com.jaelson.backend.enums.AppointmentStatus;
+import com.jaelson.backend.enums.UserRole;
 import com.jaelson.backend.exception.AppointmentConflictException;
 import com.jaelson.backend.exception.AppointmentNotFoundException;
 import com.jaelson.backend.exception.InvalidAppointmentTimeException;
@@ -17,14 +20,19 @@ import com.jaelson.backend.validation.AppointmentStatusTransitionValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @org.springframework.stereotype.Service
@@ -32,15 +40,18 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final ServiceCatalogService serviceCatalogService;
+    private final ClientAuthService clientAuthService;
     private final Clock clock;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
             ServiceCatalogService serviceCatalogService,
+            ClientAuthService clientAuthService,
             Clock clock
     ) {
         this.appointmentRepository = appointmentRepository;
         this.serviceCatalogService = serviceCatalogService;
+        this.clientAuthService = clientAuthService;
         this.clock = clock;
     }
 
@@ -50,7 +61,8 @@ public class AppointmentService {
         validateSchedule(request.appointmentDate(), request.appointmentTime());
         ensureSlotIsFree(request.appointmentDate(), request.appointmentTime());
 
-        Appointment appointment = AppointmentMapper.toEntity(request, service);
+        ClientUser clientUser = resolveAuthenticatedClient().orElse(null);
+        Appointment appointment = AppointmentMapper.toEntity(request, service, clientUser);
         Appointment savedAppointment = appointmentRepository.save(appointment);
 
         return AppointmentMapper.toResponse(savedAppointment);
@@ -84,9 +96,10 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly = true)
-    public AppointmentListResponseDTO list(LocalDate date, int page, int size) {
+    public AppointmentListResponseDTO list(LocalDate date, String q, int page, int size) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 50);
+        String normalizedQuery = (q == null || q.isBlank()) ? null : q.trim();
 
         PageRequest pageRequest = PageRequest.of(
                 safePage,
@@ -95,8 +108,43 @@ public class AppointmentService {
                         .and(Sort.by(Sort.Direction.ASC, "appointmentTime"))
         );
 
-        Page<Appointment> appointments = appointmentRepository.findAllFiltered(date, pageRequest);
+        Page<Appointment> appointments = appointmentRepository.findAllFiltered(date, normalizedQuery, pageRequest);
         return AppointmentMapper.toListResponse(appointments);
+    }
+
+    @Transactional(readOnly = true)
+    public AppointmentSummaryResponseDTO summary(LocalDate date) {
+        Map<AppointmentStatus, Long> byStatus = new EnumMap<>(AppointmentStatus.class);
+        for (AppointmentStatus status : AppointmentStatus.values()) {
+            byStatus.put(status, 0L);
+        }
+
+        long total = 0L;
+        for (Object[] row : appointmentRepository.countGroupedByStatus(date)) {
+            AppointmentStatus status = (AppointmentStatus) row[0];
+            Long count = (Long) row[1];
+            byStatus.put(status, count);
+            total += count;
+        }
+
+        return new AppointmentSummaryResponseDTO(total, byStatus);
+    }
+
+    @Transactional(readOnly = true)
+    public AppointmentListResponseDTO listForClient(String clientEmail) {
+        ClientUser client = clientAuthService.requireActiveByEmail(clientEmail);
+        return AppointmentMapper.toListResponse(appointmentRepository.findAllByClientUserId(client.getId()));
+    }
+
+    @Transactional
+    public AppointmentResponseDTO cancelForClient(Long id, String clientEmail) {
+        ClientUser client = clientAuthService.requireActiveByEmail(clientEmail);
+        Appointment appointment = appointmentRepository.findByIdAndClientUserId(id, client.getId())
+                .orElseThrow(() -> new AppointmentNotFoundException(id));
+
+        AppointmentStatusTransitionValidator.validate(appointment.getStatus(), AppointmentStatus.CANCELADO);
+        appointment.setStatus(AppointmentStatus.CANCELADO);
+        return AppointmentMapper.toResponse(appointment);
     }
 
     @Transactional
@@ -121,6 +169,23 @@ public class AppointmentService {
     private Appointment findAppointmentOrThrow(Long id) {
         return appointmentRepository.findByIdWithService(id)
                 .orElseThrow(() -> new AppointmentNotFoundException(id));
+    }
+
+    private java.util.Optional<ClientUser> resolveAuthenticatedClient() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return java.util.Optional.empty();
+        }
+
+        boolean isClient = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> authority.equals("ROLE_" + UserRole.CLIENT.name()));
+
+        if (!isClient) {
+            return java.util.Optional.empty();
+        }
+
+        return java.util.Optional.of(clientAuthService.requireActiveByEmail(authentication.getName()));
     }
 
     private void validateSchedule(LocalDate date, LocalTime time) {

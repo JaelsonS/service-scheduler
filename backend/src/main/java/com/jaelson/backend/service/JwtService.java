@@ -1,6 +1,7 @@
 package com.jaelson.backend.service;
 
 import com.jaelson.backend.config.JwtProperties;
+import com.jaelson.backend.enums.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -20,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class JwtService {
 
     public static final String TOKEN_TYPE_CLAIM = "type";
+    public static final String ROLE_CLAIM = "role";
     public static final String ACCESS_TOKEN_TYPE = "ACCESS";
     public static final String REFRESH_TOKEN_TYPE = "REFRESH";
 
@@ -34,12 +36,12 @@ public class JwtService {
         this.signingKey = Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createAccessToken(String email) {
-        return createToken(email, ACCESS_TOKEN_TYPE, properties.accessTokenExpirationMinutes(), ChronoUnit.MINUTES);
+    public String createAccessToken(String email, UserRole role) {
+        return createToken(email, role, ACCESS_TOKEN_TYPE, properties.accessTokenExpirationMinutes(), ChronoUnit.MINUTES);
     }
 
-    public String createRefreshToken(String email) {
-        return createToken(email, REFRESH_TOKEN_TYPE, properties.refreshTokenExpirationDays(), ChronoUnit.DAYS);
+    public String createRefreshToken(String email, UserRole role) {
+        return createToken(email, role, REFRESH_TOKEN_TYPE, properties.refreshTokenExpirationDays(), ChronoUnit.DAYS);
     }
 
     public Claims parseAccessToken(String token) {
@@ -53,6 +55,18 @@ public class JwtService {
         return parseToken(token, REFRESH_TOKEN_TYPE);
     }
 
+    public UserRole extractRole(Claims claims) {
+        String role = claims.get(ROLE_CLAIM, String.class);
+        if (role == null || role.isBlank()) {
+            throw new JwtException("Missing role claim");
+        }
+        try {
+            return UserRole.valueOf(role);
+        } catch (IllegalArgumentException exception) {
+            throw new JwtException("Invalid role claim");
+        }
+    }
+
     public void revokeRefreshToken(String token) {
         if (token != null && !token.isBlank()) {
             revokedRefreshTokens.add(token);
@@ -63,13 +77,20 @@ public class JwtService {
         return properties.accessTokenExpirationMinutes() * 60;
     }
 
-    private String createToken(String email, String tokenType, long expirationAmount, ChronoUnit unit) {
+    private String createToken(
+            String email,
+            UserRole role,
+            String tokenType,
+            long expirationAmount,
+            ChronoUnit unit
+    ) {
         Instant issuedAt = clock.instant();
         Instant expiresAt = issuedAt.plus(expirationAmount, unit);
 
         return Jwts.builder()
                 .subject(email)
                 .claim(TOKEN_TYPE_CLAIM, tokenType)
+                .claim(ROLE_CLAIM, role.name())
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(expiresAt))
                 .signWith(signingKey)

@@ -1,8 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LockKeyhole } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../../auth/useAuth'
 import { getApiErrorMessage } from '../../api/client'
@@ -18,9 +17,9 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-export function LoginPage() {
+export function ClientLoginPage() {
   const navigate = useNavigate()
-  const { bootstrapping, isAuthenticated, role, loginAdmin } = useAuth()
+  const { bootstrapping, isAuthenticated, role, loginClient } = useAuth()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const {
     register,
@@ -33,10 +32,9 @@ export function LoginPage() {
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
-
     try {
-      await loginAdmin(values.email, values.password)
-      navigate('/admin', { replace: true })
+      await loginClient(values.email, values.password)
+      navigate('/minha-conta', { replace: true })
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'Não foi possível entrar. Verifique suas credenciais.'))
     }
@@ -46,19 +44,18 @@ export function LoginPage() {
     return <Spinner label="Verificando sessão..." />
   }
 
-  if (isAuthenticated && role === 'ADMIN') {
-    return <Navigate to="/admin" replace />
+  if (isAuthenticated && role === 'CLIENT') {
+    return <Navigate to="/minha-conta" replace />
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-ink-50 px-4 py-10">
-      <Card className="w-full max-w-md space-y-6">
+    <section className="mx-auto max-w-md space-y-6 py-8">
+      <Card className="space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">
-            <LockKeyhole className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <h1 className="font-display text-3xl font-bold text-ink-900">Área administrativa</h1>
-          <p className="mt-2 text-sm text-ink-600">Entre para gerenciar os agendamentos.</p>
+          <h1 className="font-display text-3xl font-bold text-ink-900">Entrar</h1>
+          <p className="mt-2 text-sm text-ink-600">
+            Acesse sua conta para ver e cancelar seus agendamentos.
+          </p>
         </div>
 
         <form className="space-y-4" noValidate onSubmit={onSubmit}>
@@ -86,9 +83,15 @@ export function LoginPage() {
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </Button>
-
         </form>
+
+        <p className="text-center text-sm text-ink-600">
+          Ainda não tem conta?{' '}
+          <Link to="/cadastro" className="font-medium text-brand-700 hover:underline">
+            Criar conta
+          </Link>
+        </p>
       </Card>
-    </main>
+    </section>
   )
 }

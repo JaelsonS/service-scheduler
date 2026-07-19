@@ -39,6 +39,9 @@ class AppointmentServiceTest {
     @Mock
     private ServiceCatalogService serviceCatalogService;
 
+    @Mock
+    private ClientAuthService clientAuthService;
+
     private AppointmentService appointmentService;
 
     private Clock clock;
@@ -47,7 +50,12 @@ class AppointmentServiceTest {
     @BeforeEach
     void setUp() {
         clock = Clock.fixed(Instant.parse("2026-07-16T13:00:00Z"), ZONE);
-        appointmentService = new AppointmentService(appointmentRepository, serviceCatalogService, clock);
+        appointmentService = new AppointmentService(
+                appointmentRepository,
+                serviceCatalogService,
+                clientAuthService,
+                clock
+        );
 
         activeService = new Service();
         activeService.setId(1L);

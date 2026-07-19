@@ -21,6 +21,8 @@ const nextStatusOptions: Partial<Record<AppointmentStatus, AppointmentStatus[]>>
 export function AdminAppointmentsPage() {
   const { showToast } = useToast()
   const [dateFilter, setDateFilter] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<Appointment | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Appointment | null>(null)
@@ -28,6 +30,7 @@ export function AdminAppointmentsPage() {
 
   const {
     appointments,
+    summary,
     totalPages,
     totalElements,
     loading,
@@ -36,11 +39,16 @@ export function AdminAppointmentsPage() {
     changeStatus,
     cancel,
     remove,
-  } = useAdminAppointments(dateFilter, page)
+  } = useAdminAppointments(dateFilter, search, page)
 
   useEffect(() => {
     setPage(0)
-  }, [dateFilter])
+  }, [dateFilter, search])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300)
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
 
   async function handleStatusChange(appointment: Appointment, status: AppointmentStatus) {
     setActionLoading(true)
@@ -74,16 +82,24 @@ export function AdminAppointmentsPage() {
     }
   }
 
+  const count = (status: AppointmentStatus) => summary?.byStatus?.[status] ?? 0
+
   return (
     <section className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-900">Agendamentos</h1>
           <p className="mt-1 text-sm text-ink-600">
             {totalElements} registro{totalElements === 1 ? '' : 's'} encontrados
           </p>
         </div>
-        <div className="w-full sm:w-56">
+        <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto lg:min-w-[28rem]">
+          <Input
+            label="Buscar nome ou telefone"
+            placeholder="Ex.: Maria ou 11999"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+          />
           <Input
             label="Filtrar por data"
             type="date"
@@ -91,6 +107,22 @@ export function AdminAppointmentsPage() {
             onChange={(event) => setDateFilter(event.target.value)}
           />
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {(
+          [
+            ['AGENDADO', 'Agendados'],
+            ['CONFIRMADO', 'Confirmados'],
+            ['CONCLUIDO', 'Concluídos'],
+            ['CANCELADO', 'Cancelados'],
+          ] as const
+        ).map(([status, label]) => (
+          <Card key={status} className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{label}</p>
+            <p className="font-display text-2xl font-bold text-ink-900">{count(status)}</p>
+          </Card>
+        ))}
       </div>
 
       <Card className="overflow-hidden p-0">
@@ -101,9 +133,17 @@ export function AdminAppointmentsPage() {
             title="Nenhum agendamento"
             description="Não há agendamentos para o filtro selecionado."
             action={
-              dateFilter ? (
-                <Button type="button" variant="secondary" onClick={() => setDateFilter('')}>
-                  Limpar filtro
+              dateFilter || search ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setDateFilter('')
+                    setSearchInput('')
+                    setSearch('')
+                  }}
+                >
+                  Limpar filtros
                 </Button>
               ) : undefined
             }
@@ -111,73 +151,119 @@ export function AdminAppointmentsPage() {
         ) : null}
 
         {!loading && !error && appointments.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-ink-200 bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
-                <tr>
-                  <th className="px-4 py-3 font-semibold">Cliente</th>
-                  <th className="px-4 py-3 font-semibold">Serviço</th>
-                  <th className="px-4 py-3 font-semibold">Data</th>
-                  <th className="px-4 py-3 font-semibold">Horário</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((appointment) => (
-                  <tr key={appointment.id} className="border-b border-ink-100 last:border-0">
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        className="text-left font-semibold text-ink-900 hover:text-brand-700"
-                        onClick={() => setSelected(appointment)}
-                      >
-                        {appointment.customerName}
-                      </button>
-                      <p className="text-xs text-ink-500">{appointment.customerPhone}</p>
-                    </td>
-                    <td className="px-4 py-3 text-ink-700">{appointment.service.name}</td>
-                    <td className="px-4 py-3 text-ink-700">
-                      {new Date(`${appointment.appointmentDate}T00:00:00`).toLocaleDateString(
-                        'pt-BR',
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-ink-700">
-                      {appointment.appointmentTime.slice(0, 5)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={appointment.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {(nextStatusOptions[appointment.status] ?? []).map((status) => (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-ink-200 bg-ink-50 text-xs uppercase tracking-wide text-ink-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Cliente</th>
+                    <th className="px-4 py-3 font-semibold">Serviço</th>
+                    <th className="px-4 py-3 font-semibold">Data</th>
+                    <th className="px-4 py-3 font-semibold">Horário</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map((appointment) => (
+                    <tr key={appointment.id} className="border-b border-ink-100 last:border-0">
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          className="text-left font-semibold text-ink-900 hover:text-brand-700"
+                          onClick={() => setSelected(appointment)}
+                        >
+                          {appointment.customerName}
+                        </button>
+                        <p className="text-xs text-ink-500">{appointment.customerPhone}</p>
+                      </td>
+                      <td className="px-4 py-3 text-ink-700">{appointment.service.name}</td>
+                      <td className="px-4 py-3 text-ink-700">
+                        {new Date(`${appointment.appointmentDate}T00:00:00`).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-4 py-3 text-ink-700">
+                        {appointment.appointmentTime.slice(0, 5)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={appointment.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          {(nextStatusOptions[appointment.status] ?? []).map((status) => (
+                            <Button
+                              key={status}
+                              type="button"
+                              variant="secondary"
+                              className="!px-2.5 !py-1.5 text-xs"
+                              disabled={actionLoading}
+                              onClick={() => void handleStatusChange(appointment, status)}
+                            >
+                              {statusLabel(status)}
+                            </Button>
+                          ))}
                           <Button
-                            key={status}
                             type="button"
-                            variant="secondary"
+                            variant="danger"
                             className="!px-2.5 !py-1.5 text-xs"
                             disabled={actionLoading}
-                            onClick={() => void handleStatusChange(appointment, status)}
+                            onClick={() => setDeleteTarget(appointment)}
                           >
-                            {statusLabel(status)}
+                            Excluir
                           </Button>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="danger"
-                          className="!px-2.5 !py-1.5 text-xs"
-                          disabled={actionLoading}
-                          onClick={() => setDeleteTarget(appointment)}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-3 p-4 md:hidden">
+              {appointments.map((appointment) => (
+                <div key={appointment.id} className="rounded-xl border border-ink-100 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      className="text-left"
+                      onClick={() => setSelected(appointment)}
+                    >
+                      <p className="font-semibold text-ink-900">{appointment.customerName}</p>
+                      <p className="text-xs text-ink-500">{appointment.customerPhone}</p>
+                    </button>
+                    <StatusBadge status={appointment.status} />
+                  </div>
+                  <p className="mt-2 text-sm text-ink-700">{appointment.service.name}</p>
+                  <p className="text-sm text-ink-600">
+                    {new Date(`${appointment.appointmentDate}T00:00:00`).toLocaleDateString('pt-BR')}{' '}
+                    às {appointment.appointmentTime.slice(0, 5)}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(nextStatusOptions[appointment.status] ?? []).map((status) => (
+                      <Button
+                        key={status}
+                        type="button"
+                        variant="secondary"
+                        className="!px-2.5 !py-1.5 text-xs"
+                        disabled={actionLoading}
+                        onClick={() => void handleStatusChange(appointment, status)}
+                      >
+                        {statusLabel(status)}
+                      </Button>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="danger"
+                      className="!px-2.5 !py-1.5 text-xs"
+                      disabled={actionLoading}
+                      onClick={() => setDeleteTarget(appointment)}
+                    >
+                      Excluir
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : null}
       </Card>
 

@@ -4,10 +4,12 @@ import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { createAppointment } from '../../api/appointments'
+import { fetchClientProfile } from '../../api/clientAppointments'
 import { getApiErrorMessage } from '../../api/client'
 import { useAvailability } from '../../hooks/useAvailability'
 import { useServices } from '../../hooks/useServices'
 import { useToast } from '../../hooks/useToast'
+import { useAuth } from '../../auth/useAuth'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { EmptyState } from '../ui/EmptyState'
@@ -37,6 +39,7 @@ type BookingFormValues = z.infer<typeof bookingSchema>
 export function BookingForm() {
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { isAuthenticated, role } = useAuth()
   const { services, loading: servicesLoading, error: servicesError, reload } = useServices()
   const [submitting, setSubmitting] = useState(false)
 
@@ -57,6 +60,29 @@ export function BookingForm() {
       appointmentTime: '',
     },
   })
+
+  useEffect(() => {
+    if (!isAuthenticated || role !== 'CLIENT') {
+      return
+    }
+
+    let cancelled = false
+    void fetchClientProfile()
+      .then((profile) => {
+        if (cancelled) {
+          return
+        }
+        setValue('customerName', profile.fullName)
+        setValue('customerPhone', profile.phone)
+      })
+      .catch(() => {
+        // Keep form empty if profile cannot be loaded.
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, role, setValue])
 
   const selectedDate = watch('appointmentDate')
   const selectedTime = watch('appointmentTime')

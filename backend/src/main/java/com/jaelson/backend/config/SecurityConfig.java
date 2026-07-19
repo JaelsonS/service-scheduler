@@ -42,12 +42,14 @@ public class SecurityConfig {
                                 "/api/v1/services/**",
                                 "/api/v1/appointments/**",
                                 "/api/v1/auth/**",
+                                "/api/v1/client/auth/**",
                                 "/actuator/health",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/client/**").hasRole("CLIENT")
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

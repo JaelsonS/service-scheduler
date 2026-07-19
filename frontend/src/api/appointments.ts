@@ -24,11 +24,23 @@ export async function fetchAvailability(date: string): Promise<AvailabilityRespo
 
 export async function fetchAdminAppointments(params: {
   date?: string
+  q?: string
   page?: number
   size?: number
 }): Promise<AppointmentListResponse> {
   return getWithRetry<AppointmentListResponse>('/admin/appointments', {
     params,
+  })
+}
+
+export interface AppointmentSummary {
+  total: number
+  byStatus: Partial<Record<AppointmentStatus, number>>
+}
+
+export async function fetchAdminAppointmentSummary(date?: string): Promise<AppointmentSummary> {
+  return getWithRetry<AppointmentSummary>('/admin/appointments/summary', {
+    params: { date: date || undefined },
   })
 }
 

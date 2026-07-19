@@ -23,11 +23,12 @@ As decisoes foram tomadas considerando:
 
 O cliente podera:
 
-- agendar um servico;
+- agendar um servico **sem login** (fluxo minimo do desafio);
 - informar nome, telefone, servico, data e horario;
 - consultar horarios disponiveis;
 - deixar de selecionar horarios ocupados;
-- visualizar uma confirmacao.
+- visualizar uma confirmacao;
+- **opcionalmente** criar conta (e-mail + senha), ver e cancelar os proprios agendamentos.
 
 ### Administrador
 
@@ -35,7 +36,8 @@ O administrador podera:
 
 - listar agendamentos;
 - visualizar os dados dos clientes;
-- filtrar por data;
+- filtrar por data e buscar por nome/telefone;
+- consultar resumo do dia por status;
 - alterar status;
 - cancelar agendamentos;
 - excluir agendamentos.
@@ -158,9 +160,14 @@ O frontend melhora a experiencia, mas nunca sera a unica camada de validacao. O 
 
 ## Seguranca
 
-A entrega final inclui autenticacao administrativa com Spring Security e JWT (access + refresh). Clientes continuam sem login, pois o desafio nao exige identidade no fluxo de agendamento.
+A entrega inclui autenticacao com Spring Security e JWT (access + refresh) em dois papeis:
 
-Endpoints `/api/v1/admin/**` exigem Bearer token com papel `ADMIN`. Credenciais iniciais sao criadas via bootstrap a partir de variaveis de ambiente. Segredos ficam fora do repositorio (`.env` local / painel do Render).
+- `ADMIN` — painel `/api/v1/admin/**`;
+- `CLIENT` — area `/api/v1/client/**` (cadastro/login publicos; restante autenticado).
+
+O fluxo de agendamento publico (`POST /api/v1/appointments`) permanece aberto. Se o request trouxer Bearer `CLIENT` valido, o agendamento e associado ao `client_user_id` (coluna nullable), preservando agendamentos anonimos.
+
+Credenciais iniciais do admin sao criadas via bootstrap a partir de variaveis de ambiente. Segredos ficam fora do repositorio (`.env` local / painel do Render).
 
 Evolucoes recomendadas: rate limiting, store distribuida de refresh tokens, auditoria e rotacao automatica de chaves.
 
@@ -178,11 +185,19 @@ Testes de carga, concorrencia avancada e Testcontainers sao evolucoes recomendad
 
 ## Decisoes de escopo
 
-Nao serao implementados no MVP recursos como autenticacao de **clientes**, catalogo administrativo completo, profissionais, recursos multiplos, notificacoes, dashboard avancado, cache, filas, Docker, CI/CD completo e multiempresa.
+### Cliente autenticado opcional (hibrido)
 
-Autenticacao JWT do **admin** faz parte da entrega (ver secao acima).
+O desafio exige agendamento publico. Optamos por **manter esse fluxo** e, em paralelo, oferecer conta de cliente opcional. Motivos:
 
-Isso nao significa que esses recursos sejam irrelevantes. Significa que foram comparados com o valor para os requisitos do desafio e com o custo de implementacao. A escolha foi priorizar um fluxo principal completo, testado e documentado, com deploy (Render + Vercel) como passo final de demonstracao.
+1. nao quebra o requisito minimo;
+2. demonstra JWT multi-papel de forma clara para o recrutador;
+3. custo controlado (mesma infra de auth do admin + entidade `ClientUser` + migration `V4`).
+
+Fora do MVP desta entrega: CRUD completo de servicos no admin, profissionais, WhatsApp, CI/CD completo e multi-tenant.
+
+Autenticacao JWT do **admin** e do **cliente** (opcional) faz parte da entrega atual.
+
+Isso nao significa que os itens fora de escopo sejam irrelevantes. Significa que foram comparados com o valor para os requisitos do desafio e com o custo de implementacao. A escolha foi priorizar um fluxo principal completo, testado e documentado, com demo publica (Render + Vercel).
 
 ## Criterios para evolucao
 

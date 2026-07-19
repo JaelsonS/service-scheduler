@@ -5,6 +5,7 @@ public record AuthTokenResponseDTO(
         String refreshToken,
         String tokenType,
         long expiresIn,
-        String email
+        String email,
+        String role
 ) {
 }
