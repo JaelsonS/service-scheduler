@@ -15,12 +15,14 @@ MVP funcional: clientes agendam com horários reais; administradores gerenciam a
 
 | Link | URL |
 |------|-----|
-| Frontend (Vercel) | _adicionar após o deploy_ |
+| Frontend (Vercel) | https://service-scheduler-puce.vercel.app |
 | Backend (Render) | https://service-scheduler-l3g7.onrender.com |
 | Health | https://service-scheduler-l3g7.onrender.com/actuator/health |
 | Repositório | https://github.com/JaelsonS/service-scheduler |
 
 API base para o frontend: `https://service-scheduler-l3g7.onrender.com/api/v1`
+
+No Render, `CORS_ALLOWED_ORIGINS` deve incluir a URL da Vercel (ex.: `https://service-scheduler-puce.vercel.app`).
 
 Credenciais da demo em produção: use as definidas em `ADMIN_EMAIL` / `ADMIN_PASSWORD` no Render (não use a senha de desenvolvimento).
 
@@ -39,7 +41,7 @@ Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
 | Documentação / ADRs | Pronto |
 | Código completo no GitHub | Pronto |
 | Deploy backend (Render) | Pronto |
-| Deploy frontend (Vercel) | Pendente |
+| Deploy frontend (Vercel) | Pronto (ajustar CORS se necessário) |
 | Screenshots no README | Pendente |
 
 ---

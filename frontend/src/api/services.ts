@@ -1,7 +1,6 @@
-import { apiClient } from './client'
+import { getWithRetry } from './client'
 import type { ServiceItem } from '../types/appointment'
 
 export async function fetchActiveServices(): Promise<ServiceItem[]> {
-  const { data } = await apiClient.get<ServiceItem[]>('/services')
-  return data
+  return getWithRetry<ServiceItem[]>('/services')
 }

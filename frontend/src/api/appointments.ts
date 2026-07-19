@@ -1,4 +1,4 @@
-import { apiClient } from './client'
+import { apiClient, getWithRetry } from './client'
 import type {
   Appointment,
   AppointmentListResponse,
@@ -13,15 +13,13 @@ export async function createAppointment(payload: CreateAppointmentPayload): Prom
 }
 
 export async function fetchAppointmentById(id: number): Promise<Appointment> {
-  const { data } = await apiClient.get<Appointment>(`/appointments/${id}`)
-  return data
+  return getWithRetry<Appointment>(`/appointments/${id}`)
 }
 
 export async function fetchAvailability(date: string): Promise<AvailabilityResponse> {
-  const { data } = await apiClient.get<AvailabilityResponse>('/appointments/availability', {
+  return getWithRetry<AvailabilityResponse>('/appointments/availability', {
     params: { date },
   })
-  return data
 }
 
 export async function fetchAdminAppointments(params: {
@@ -29,10 +27,9 @@ export async function fetchAdminAppointments(params: {
   page?: number
   size?: number
 }): Promise<AppointmentListResponse> {
-  const { data } = await apiClient.get<AppointmentListResponse>('/admin/appointments', {
+  return getWithRetry<AppointmentListResponse>('/admin/appointments', {
     params,
   })
-  return data
 }
 
 export async function updateAppointmentStatus(

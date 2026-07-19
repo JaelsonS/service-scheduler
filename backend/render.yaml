@@ -17,7 +17,7 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://service-scheduler-puce.vercel.app,http://localhost:5173
       - key: JWT_SECRET
         sync: false
       - key: ADMIN_EMAIL

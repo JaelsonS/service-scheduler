@@ -14,7 +14,7 @@ import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
-import { Spinner } from '../ui/Spinner'
+import { BootAwareSpinner } from '../ui/Spinner'
 import { Calendar } from './Calendar'
 import { TimeSlotPicker } from './TimeSlotPicker'
 import type { ApiErrorBody } from '../../types/appointment'
@@ -119,15 +119,16 @@ export function BookingForm() {
   if (servicesLoading) {
     return (
       <Card>
-        <Spinner label="Carregando serviços..." />
+        <BootAwareSpinner label="Carregando serviços..." />
       </Card>
     )
   }
 
   if (servicesError) {
+    const soft = /conectar|servidor|CORS|iniciando|acordando/i.test(servicesError)
     return (
       <Card>
-        <ErrorState message={servicesError} onRetry={reload} />
+        <ErrorState message={servicesError} onRetry={reload} soft={soft} />
       </Card>
     )
   }
@@ -214,7 +215,11 @@ export function BookingForm() {
               Selecione uma data para ver os horários disponíveis.
             </p>
           ) : slotsError ? (
-            <ErrorState message={slotsError} onRetry={reloadAvailability} />
+            <ErrorState
+              message={slotsError}
+              onRetry={reloadAvailability}
+              soft={/conectar|servidor|CORS|iniciando|acordando/i.test(slotsError)}
+            />
           ) : (
             <TimeSlotPicker
               slots={slots}
