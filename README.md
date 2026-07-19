@@ -22,7 +22,10 @@ MVP funcional: clientes agendam com horários reais; administradores gerenciam a
 
 API base para o frontend: `https://service-scheduler-l3g7.onrender.com/api/v1`
 
-No Render, `CORS_ALLOWED_ORIGINS` deve incluir a URL da Vercel (ex.: `https://service-scheduler-puce.vercel.app`).
+No Render, `CORS_ALLOWED_ORIGINS` pode listar URLs extras; o backend já libera `https://*.vercel.app` (produção e previews).
+
+Use a URL estável da Vercel: https://service-scheduler-puce.vercel.app  
+(evite abrir links de deploy temporários `*-projects.vercel.app` no dia a dia).
 
 Credenciais da demo em produção: use as definidas em `ADMIN_EMAIL` / `ADMIN_PASSWORD` no Render (não use a senha de desenvolvimento).
 

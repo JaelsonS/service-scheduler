@@ -7,19 +7,31 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Configuration
 public class CorsConfig {
 
+    /**
+     * Always allow local Vite and any Vercel deployment URL (prod + preview).
+     * Extra origins can still be provided via CORS_ALLOWED_ORIGINS.
+     */
+    private static final List<String> DEFAULT_ORIGIN_PATTERNS = List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://*.vercel.app"
+    );
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${app.cors.allowed-origins:http://localhost:5173}") String allowedOrigins
+            @Value("${app.cors.allowed-origins:}") String allowedOrigins
     ) {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Patterns allow exact origins from env (comma-separated), including production Vercel URLs.
-        configuration.setAllowedOriginPatterns(parseOrigins(allowedOrigins));
+        configuration.setAllowedOriginPatterns(mergeOriginPatterns(allowedOrigins));
         configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS", "PUT"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization", "Location"));
@@ -31,10 +43,12 @@ public class CorsConfig {
         return source;
     }
 
-    private List<String> parseOrigins(String allowedOrigins) {
-        return Arrays.stream(allowedOrigins.split(","))
+    private List<String> mergeOriginPatterns(String allowedOrigins) {
+        Set<String> patterns = new LinkedHashSet<>(DEFAULT_ORIGIN_PATTERNS);
+        Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(origin -> !origin.isEmpty())
-                .toList();
+                .forEach(patterns::add);
+        return new ArrayList<>(patterns);
     }
 }
