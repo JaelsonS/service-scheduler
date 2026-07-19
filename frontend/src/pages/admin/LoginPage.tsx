@@ -86,6 +86,15 @@ export function LoginPage() {
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </Button>
+
+          <p className="text-center text-xs text-ink-500">
+            Demo: use o e-mail e a senha configurados no Render
+            (<code className="text-ink-700">ADMIN_EMAIL</code> /{' '}
+            <code className="text-ink-700">ADMIN_PASSWORD</code>).
+            Se ainda for o bootstrap de desenvolvimento:{' '}
+            <code className="text-ink-700">admin@agendapro.local</code> /{' '}
+            <code className="text-ink-700">Admin@12345</code>.
+          </p>
         </form>
       </Card>
     </main>
