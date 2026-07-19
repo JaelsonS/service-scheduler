@@ -76,21 +76,28 @@ Credenciais **somente desenvolvimento** (bootstrap):
 
 ## Passo 3 — Deploy backend no Render
 
+> **Importante:** o Render **não tem runtime Java**. Use **Language = Docker**.
+
 1. Faça push do repositório completo no GitHub.
-2. [dashboard.render.com](https://dashboard.render.com) → **New → Blueprint** (usa `backend/render.yaml`) **ou** **Web Service**.
-3. Se for Web Service manual:
-   - **Root Directory:** `backend`
-   - **Build:** `./mvnw -DskipTests package`
-   - **Start:** `java -jar target/backend-0.0.1-SNAPSHOT.jar`
-   - **Health Check Path:** `/actuator/health`
-4. Runtime / Java: use **Java 25** (`JAVA_VERSION=25` no Blueprint).
+2. [dashboard.render.com](https://dashboard.render.com) → **New → Web Service** → repo `service-scheduler`.
+3. Preencha assim:
+
+| Campo | Valor |
+|-------|--------|
+| Language | **Docker** |
+| Branch | `main` |
+| Region | Frankfurt (ou a mais próxima) |
+| Root Directory | `backend` |
+| Dockerfile Path | `backend/Dockerfile` |
+| Instance | **Free** |
+
+4. Não precisa de Build/Start Command — o Docker cuida disso.
 
 ### Variáveis de ambiente (Render)
 
 | Key | Valor |
 |-----|--------|
 | `SPRING_PROFILES_ACTIVE` | `prod` |
-| `JAVA_VERSION` | `25` |
 | `DB_URL` | JDBC do Supabase com `?sslmode=require` |
 | `DB_USERNAME` | `postgres` (ou o user do projeto) |
 | `DB_PASSWORD` | senha do Supabase |

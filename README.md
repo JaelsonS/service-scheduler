@@ -309,11 +309,11 @@ Passo a passo detalhado: [`docs/setup-externo.md`](docs/setup-externo.md).
 
 ### Backend (Render)
 
-1. Use Blueprint com `backend/render.yaml` (**rootDir:** `backend`) ou Web Service com Root Directory `backend`.
-2. Build: `./mvnw -DskipTests package`
-3. Start: `java -jar target/backend-0.0.1-SNAPSHOT.jar`
-4. Health check: `/actuator/health`
-5. Defina `DB_*`, `CORS_ALLOWED_ORIGINS`, `JWT_SECRET`, `ADMIN_*`, `SPRING_PROFILES_ACTIVE=prod`, `JAVA_VERSION=25`.
+1. **Language = Docker** (Render não oferece Java nativo). Use `backend/Dockerfile`.
+2. Root Directory: `backend` · Dockerfile Path: `backend/Dockerfile`
+3. Health check: `/actuator/health`
+4. Defina `DB_*`, `CORS_ALLOWED_ORIGINS`, `JWT_SECRET`, `ADMIN_*`, `SPRING_PROFILES_ACTIVE=prod`.
+5. A app escuta `PORT` (Render injeta automaticamente).
 
 ### Banco (Supabase)
 
