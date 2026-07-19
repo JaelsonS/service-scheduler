@@ -33,6 +33,23 @@ cp backend/.env.example backend/.env
 
 Preencha pelo menos: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`.
 
+### Render + Supabase (IPv4) — obrigatório
+
+O host direto `db.<REF>.supabase.co` é **IPv6**. O Render **não tem IPv6 de saída** → erro `Network is unreachable`.
+
+No Supabase: **Connect** → use **Session pooler** (porta `5432`), não o “Direct connection”.
+
+Exemplo (troque região/ref/senha pelos seus):
+
+```env
+DB_URL=jdbc:postgresql://aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require
+DB_USERNAME=postgres.<PROJECT_REF>
+DB_PASSWORD=<senha-do-banco>
+```
+
+> Em Session mode o usuário costuma ser `postgres.<PROJECT_REF>`, não só `postgres`.
+> Copie a string pronta no dashboard e só prefixe com `jdbc:`.
+
 Na primeira subida da API, o Flyway aplica/baselina as migrations e o bootstrap cria o admin se a tabela estiver vazia.
 
 ---
