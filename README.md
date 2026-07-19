@@ -16,8 +16,11 @@ MVP funcional: clientes agendam com horários reais; administradores gerenciam a
 | Link | URL |
 |------|-----|
 | Frontend (Vercel) | _adicionar após o deploy_ |
-| Backend health (Render) | _adicionar após o deploy_ |
+| Backend (Render) | https://service-scheduler-l3g7.onrender.com |
+| Health | https://service-scheduler-l3g7.onrender.com/actuator/health |
 | Repositório | https://github.com/JaelsonS/service-scheduler |
+
+API base para o frontend: `https://service-scheduler-l3g7.onrender.com/api/v1`
 
 Credenciais da demo em produção: use as definidas em `ADMIN_EMAIL` / `ADMIN_PASSWORD` no Render (não use a senha de desenvolvimento).
 
@@ -34,8 +37,9 @@ Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
 | Testes backend (`./mvnw test`) | Pronto |
 | Build frontend (`npm run build`) | Pronto |
 | Documentação / ADRs | Pronto |
-| Código completo no GitHub | Pendente (push) |
-| Deploy Vercel + Render | Pendente |
+| Código completo no GitHub | Pronto |
+| Deploy backend (Render) | Pronto |
+| Deploy frontend (Vercel) | Pendente |
 | Screenshots no README | Pendente |
 
 ---
