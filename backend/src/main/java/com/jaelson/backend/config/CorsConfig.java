@@ -17,10 +17,11 @@ import java.util.Set;
 public class CorsConfig {
 
     /**
-     * Always allow local Vite and any Vercel deployment URL (prod + preview).
-     * Extra origins can still be provided via CORS_ALLOWED_ORIGINS.
+     * "*" via allowedOriginPatterns works with credentials in Spring Framework 6+/7
+     * and reflects the request Origin. Extra patterns from env are still merged.
      */
     private static final List<String> DEFAULT_ORIGIN_PATTERNS = List.of(
+            "*",
             "http://localhost:*",
             "http://127.0.0.1:*",
             "https://*.vercel.app"
@@ -32,7 +33,7 @@ public class CorsConfig {
     ) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(mergeOriginPatterns(allowedOrigins));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS", "PUT"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS", "PUT", "HEAD"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization", "Location"));
         configuration.setAllowCredentials(true);
