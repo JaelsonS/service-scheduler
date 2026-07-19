@@ -158,11 +158,11 @@ O frontend melhora a experiencia, mas nunca sera a unica camada de validacao. O 
 
 ## Seguranca
 
-JWT e autenticacao administrativa nao fazem parte do MVP, pois nao sao requisitos obrigatorios do desafio. Essa ausencia sera documentada claramente e nao sera substituida por uma credencial fixa ou por um segredo exposto no frontend.
+A entrega final inclui autenticacao administrativa com Spring Security e JWT (access + refresh). Clientes continuam sem login, pois o desafio nao exige identidade no fluxo de agendamento.
 
-A estrutura ainda separara endpoints administrativos e publicos, mantera configuracoes sensiveis em variaveis de ambiente e evitara expor stack traces ou dados pessoais completos nos logs.
+Endpoints `/api/v1/admin/**` exigem Bearer token com papel `ADMIN`. Credenciais iniciais sao criadas via bootstrap a partir de variaveis de ambiente. Segredos ficam fora do repositorio (`.env` local / painel do Render).
 
-Em producao, a evolucao recomendada inclui Spring Security, JWT, perfis de acesso, rate limiting, auditoria e politicas de protecao de dados.
+Evolucoes recomendadas: rate limiting, store distribuida de refresh tokens, auditoria e rotacao automatica de chaves.
 
 ## Testes
 
@@ -178,9 +178,11 @@ Testes de carga, concorrencia avancada e Testcontainers sao evolucoes recomendad
 
 ## Decisoes de escopo
 
-Nao serao implementados no MVP recursos como autenticacao, catalogo completo, profissionais, recursos multiplos, notificacoes, dashboard avancado, cache, filas, Docker, CI/CD completo e multiempresa.
+Nao serao implementados no MVP recursos como autenticacao de **clientes**, catalogo administrativo completo, profissionais, recursos multiplos, notificacoes, dashboard avancado, cache, filas, Docker, CI/CD completo e multiempresa.
 
-Isso nao significa que esses recursos sejam irrelevantes. Significa que foram comparados com o valor para os requisitos do desafio e com o custo de implementacao em sete dias. A escolha foi priorizar um fluxo principal completo, testado, documentado e pronto para deploy.
+Autenticacao JWT do **admin** faz parte da entrega (ver secao acima).
+
+Isso nao significa que esses recursos sejam irrelevantes. Significa que foram comparados com o valor para os requisitos do desafio e com o custo de implementacao. A escolha foi priorizar um fluxo principal completo, testado e documentado, com deploy (Render + Vercel) como passo final de demonstracao.
 
 ## Criterios para evolucao
 

@@ -4,7 +4,7 @@ import com.jaelson.backend.enums.AppointmentStatus;
 import jakarta.validation.constraints.NotNull;
 
 public record AppointmentStatusUpdateRequestDTO(
-        @NotNull(message = "Appointment status is required")
+        @NotNull(message = "Status is required")
         AppointmentStatus status
 ) {
 }

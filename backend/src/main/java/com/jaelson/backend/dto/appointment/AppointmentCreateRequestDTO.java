@@ -1,6 +1,5 @@
 package com.jaelson.backend.dto.appointment;
 
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -24,7 +23,6 @@ public record AppointmentCreateRequestDTO(
         String customerPhone,
 
         @NotNull(message = "Appointment date is required")
-        @FutureOrPresent(message = "Appointment date must be today or in the future")
         LocalDate appointmentDate,
 
         @NotNull(message = "Appointment time is required")

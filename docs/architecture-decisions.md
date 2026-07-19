@@ -332,47 +332,47 @@ O versionamento na URL e simples de testar, facil de compreender e suficiente pa
 
 Criar `/api/v2` somente diante de uma quebra de contrato real. Adicionar OpenAPI e validacao automatica de contratos quando a API crescer.
 
-## ADR-008: Seguranca administrativa preparada, mas sem JWT no MVP
+## ADR-008: JWT e Spring Security para a area administrativa
 
 ### Contexto
 
-O desafio exige uma area administrativa, mas nao exige autenticacao ou autorizacao.
+A entrega final exige que operacoes administrativas sejam protegidas, sem adicionar atrito ao fluxo publico de agendamento.
 
 ### Problema
 
-Implementar um sistema completo de identidade em sete dias pode consumir tempo do fluxo principal, mas deixar os controllers administrativos misturados aos publicos dificultaria uma evolucao posterior.
+Os endpoints administrativos permitem consultar e alterar agendamentos. Expo-los sem autenticacao nao e adequado para uma entrega pronta para producao, enquanto autenticar os endpoints de reserva prejudicaria a experiencia do cliente.
 
 ### Opcoes consideradas
 
-1. Nao fazer nenhuma separacao e proteger tudo futuramente.
-2. Implementar Spring Security e JWT imediatamente.
-3. Separar endpoints administrativos e manter a regra de negocio independente da autenticacao.
-4. Usar uma senha fixa ou segredo no frontend.
+1. Manter todos os endpoints publicos e proteger depois.
+2. Usar uma senha fixa ou segredo no frontend.
+3. Implementar sessao stateful para toda a API.
+4. Implementar Spring Security com JWT somente na area administrativa.
 
 ### Decisao adotada
 
-JWT e autenticacao nao serao implementados no MVP. Controllers administrativos serao separados dos publicos e nenhuma regra de negocio dependera de uma implementacao especifica de autenticacao.
+Adotar Spring Security stateless com JWT para `/api/v1/admin/**`. O login e a renovacao de token ficam em `/api/v1/auth`, com access token de curta duracao e refresh token. Endpoints de servicos, agendamentos de clientes, autenticacao, health check e documentacao permanecem publicos.
 
 ### Justificativa tecnica
 
-A decisao atende aos requisitos do desafio sem criar uma falsa sensacao de seguranca com credenciais improvisadas. A separacao de fronteiras permite incluir Spring Security posteriormente com impacto controlado.
+A separacao existente entre endpoints administrativos e publicos permite adicionar seguranca na fronteira HTTP sem alterar regras de negocio de agendamentos. JWT evita estado de sessao no servidor e BCrypt protege a credencial inicial do administrador.
 
 ### Beneficios
 
-- mais tempo para entregar o fluxo funcional;
-- menor superficie de codigo sensivel no MVP;
-- facilidade de adicionar filtros de seguranca depois;
-- regras de negocio desacopladas de identidade.
+- area administrativa protegida por autenticacao;
+- fluxo de reserva do cliente continua sem login;
+- respostas 401 e 403 padronizadas com o restante da API;
+- configuracao de credenciais e expiracoes por ambiente.
 
 ### Trade-offs
 
-- a area administrativa nao sera apropriada para exposicao publica sem uma camada adicional de seguranca;
-- o MVP nao atende requisitos de autenticacao de producao;
-- sera necessaria uma etapa futura de revisao de autorizacao.
+- logout invalida refresh tokens em denylist em memoria (access tokens seguem a expiracao curta);
+- existe apenas o perfil administrativo unico nesta entrega;
+- rotacao de refresh tokens e auditoria completa permanecem evolucoes futuras.
 
 ### Evolucao futura
 
-Adicionar Spring Security, JWT ou sessao segura, controle de acesso por perfis, expiracao de credenciais, rate limiting e auditoria.
+Adicionar revogacao persistida e rotacao de refresh tokens, recuperacao de senha, controle de acesso por perfis, rate limiting e auditoria.
 
 ## ADR-009: Performance proporcional ao escopo
 
@@ -464,8 +464,8 @@ As funcionalidades abaixo poderiam tornar o sistema mais robusto e completo em u
 
 ### Seguranca e acesso
 
-- autenticacao com Spring Security e JWT;
 - controle de acesso por perfis;
+- rotacao e revogacao persistida de refresh tokens;
 - auditoria completa de operacoes administrativas.
 
 ### Dominio e agenda

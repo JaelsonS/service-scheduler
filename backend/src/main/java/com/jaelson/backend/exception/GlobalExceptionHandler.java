@@ -5,14 +5,18 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -100,6 +104,79 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMissingServletRequestParameter(
+            MissingServletRequestParameterException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "MISSING_PARAMETER",
+                "Required parameter '" + exception.getParameterName() + "' is missing",
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_PARAMETER",
+                "Parameter '" + exception.getName() + "' has an invalid value",
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNoResourceFound(
+            NoResourceFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "RESOURCE_NOT_FOUND",
+                "The requested resource was not found",
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDataIntegrityViolation(
+            DataIntegrityViolationException exception,
+            HttpServletRequest request
+    ) {
+        Throwable mostSpecificCause = exception.getMostSpecificCause();
+        String causeMessage = mostSpecificCause != null
+                ? mostSpecificCause.getMessage()
+                : exception.getMessage();
+        String sqlState = tryExtractPostgresSqlState(mostSpecificCause != null ? mostSpecificCause : exception);
+        logger.warn("Data integrity violation (sqlState={}): {}", sqlState, causeMessage);
+
+        if ("23505".equals(sqlState)) {
+            return buildResponse(
+                    HttpStatus.CONFLICT,
+                    "APPOINTMENT_CONFLICT",
+                    "There is already an active appointment at the selected date and time",
+                    request.getRequestURI(),
+                    Map.of()
+            );
+        }
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "DATA_INTEGRITY_VIOLATION",
+                "Request cannot be processed due to a data integrity constraint",
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleUnexpectedException(
             Exception exception,
@@ -114,6 +191,24 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 Map.of()
         );
+    }
+
+    private String tryExtractPostgresSqlState(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if ("org.postgresql.util.PSQLException".equals(current.getClass().getName())) {
+                try {
+                    Method method = current.getClass().getMethod("getSQLState");
+                    Object value = method.invoke(current);
+                    return value instanceof String ? (String) value : null;
+                } catch (Exception ignored) {
+                    return null;
+                }
+            }
+            current = current.getCause();
+        }
+
+        return null;
     }
 
     private ResponseEntity<ErrorResponseDTO> buildResponse(
