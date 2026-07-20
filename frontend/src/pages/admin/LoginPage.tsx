@@ -73,7 +73,7 @@ export function LoginPage() {
           <Input
             label="E-mail"
             type="email"
-            placeholder="admin@agendapro.local"
+            placeholder="seu@email.com"
             autoComplete="email"
             error={errors.email?.message}
             {...register('email')}
