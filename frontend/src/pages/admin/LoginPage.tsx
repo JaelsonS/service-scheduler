@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { LockKeyhole } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useAuth } from '../../auth/useAuth'
 import { getApiErrorMessage } from '../../api/client'
@@ -62,9 +62,18 @@ export function LoginPage() {
       />
       <Card className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">
-            <LockKeyhole className="h-6 w-6" aria-hidden="true" />
-          </div>
+          <Link
+            to="/"
+            className="mx-auto mb-4 inline-flex flex-col items-center gap-2 rounded-2xl outline-none transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
+            aria-label="Voltar para a página inicial do AgendaPro"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">
+              <CalendarDays className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <span className="font-display text-lg font-bold tracking-tight text-ink-900">
+              AgendaPro
+            </span>
+          </Link>
           <h1 className="font-display text-3xl font-bold text-ink-900">Área administrativa</h1>
           <p className="mt-2 text-sm text-ink-600">Entre para gerenciar os agendamentos.</p>
         </div>
@@ -95,8 +104,13 @@ export function LoginPage() {
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </Button>
-
         </form>
+
+        <p className="text-center text-sm text-ink-500">
+          <Link to="/" className="font-medium text-brand-700 hover:underline">
+            Voltar ao início
+          </Link>
+        </p>
       </Card>
     </main>
   )
