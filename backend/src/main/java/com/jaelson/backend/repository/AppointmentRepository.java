@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,16 +56,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("clientUserId") Long clientUserId
     );
 
-    @Query("""
-            SELECT a.appointmentTime FROM Appointment a
-            WHERE a.appointmentDate = :date
-              AND a.status <> :cancelledStatus
-            """)
-    List<LocalTime> findOccupiedTimesByDate(
-            @Param("date") LocalDate date,
-            @Param("cancelledStatus") AppointmentStatus cancelledStatus
-    );
-
     @EntityGraph(attributePaths = "service")
     @Query("""
             SELECT a FROM Appointment a
@@ -84,10 +73,4 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             GROUP BY a.status
             """)
     List<Object[]> countGroupedByStatus(@Param("date") LocalDate date);
-
-    boolean existsByAppointmentDateAndAppointmentTimeAndStatusNot(
-            LocalDate appointmentDate,
-            LocalTime appointmentTime,
-            AppointmentStatus status
-    );
 }

@@ -68,7 +68,7 @@ Spring Boot (Render)
    RateLimit → JWT filter → Controller → Service → Repository
    │
    ▼
-PostgreSQL (Supabase)  ←  Flyway V1–V4
+PostgreSQL (Supabase)  ←  Flyway V1–V5
 ```
 
 Monorepo:
@@ -117,7 +117,7 @@ export $(grep -v '^#' .env | xargs)
 - Health: http://localhost:8080/actuator/health  
 - Swagger (só `dev`): http://localhost:8080/swagger-ui.html  
 
-Flyway aplica `V1`–`V4` e o seed de serviços sozinho.
+Flyway aplica `V1`–`V5` e o seed de serviços sozinho.
 
 > **Supabase no Render:** use o **Session pooler** (IPv4). Host `db.*.supabase.co` é IPv6 e costuma falhar no Render.
 
