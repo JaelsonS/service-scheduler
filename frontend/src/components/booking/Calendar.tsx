@@ -41,7 +41,7 @@ export function Calendar({ selectedDate, onSelect }: CalendarProps) {
   })
 
   return (
-    <div className="rounded-2xl border border-ink-200 bg-white p-3 sm:p-4">
+    <div className="rounded-2xl border border-ink-100 bg-ink-50/40 p-3 sm:p-4">
       <div className="mb-3 flex items-center justify-between sm:mb-4">
         <button
           type="button"

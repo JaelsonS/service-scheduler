@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CalendarDays, CheckCircle2, Clock3, Scissors, UserRound } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Check, ChevronLeft } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -18,7 +18,6 @@ import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Input } from '../ui/Input'
 import { PhoneField } from '../ui/PhoneField'
-import { Select } from '../ui/Select'
 import { BootAwareSpinner } from '../ui/Spinner'
 import { Calendar } from './Calendar'
 import { TimeSlotPicker } from './TimeSlotPicker'
@@ -40,39 +39,14 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>
 
-function StepHeading({
-  step,
-  title,
-  description,
-  done,
-  icon: Icon,
-}: {
-  step: number
-  title: string
-  description: string
-  done?: boolean
-  icon: typeof CalendarDays
-}) {
-  return (
-    <div className="mb-4 flex items-start gap-3">
-      <span
-        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-          done ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'
-        }`}
-        aria-hidden="true"
-      >
-        {done ? <CheckCircle2 className="h-4 w-4" /> : step}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
-          <h2 className="font-display text-lg font-semibold text-ink-900 sm:text-xl">{title}</h2>
-        </div>
-        <p className="mt-0.5 text-sm text-ink-500">{description}</p>
-      </div>
-    </div>
-  )
-}
+type StepId = 1 | 2 | 3 | 4
+
+const STEPS: { id: StepId; label: string }[] = [
+  { id: 1, label: 'Serviço' },
+  { id: 2, label: 'Data' },
+  { id: 3, label: 'Horário' },
+  { id: 4, label: 'Dados' },
+]
 
 function formatDateLabel(iso: string): string {
   if (!iso) return ''
@@ -84,14 +58,166 @@ function formatDateLabel(iso: string): string {
   })
 }
 
+function formatDateShort(iso: string): string {
+  if (!iso) return ''
+  const date = new Date(`${iso}T00:00:00`)
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+  })
+}
+
+function BookingStepper({
+  currentStep,
+  completedThrough,
+}: {
+  currentStep: StepId
+  completedThrough: number
+}) {
+  return (
+    <nav aria-label="Etapas do agendamento" className="w-full">
+      <ol className="flex items-start justify-between gap-1 sm:gap-2">
+        {STEPS.map((step, index) => {
+          const isActive = currentStep === step.id
+          const isDone = completedThrough >= step.id && !isActive
+          const isReachable = step.id <= Math.max(currentStep, completedThrough + 1)
+
+          return (
+            <li key={step.id} className="relative flex flex-1 flex-col items-center">
+              {index > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className={`absolute top-4 right-1/2 -z-0 h-0.5 w-full -translate-y-1/2 ${
+                    completedThrough >= step.id - 1 || currentStep >= step.id
+                      ? 'bg-brand-500'
+                      : 'bg-ink-200'
+                  }`}
+                />
+              ) : null}
+              <span
+                className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition ${
+                  isDone
+                    ? 'bg-brand-600 text-white'
+                    : isActive
+                      ? 'bg-brand-600 text-white ring-4 ring-brand-100'
+                      : isReachable
+                        ? 'border-2 border-ink-200 bg-white text-ink-500'
+                        : 'border-2 border-ink-100 bg-ink-50 text-ink-300'
+                }`}
+                aria-current={isActive ? 'step' : undefined}
+              >
+                {isDone ? <Check className="h-4 w-4" strokeWidth={2.5} /> : step.id}
+              </span>
+              <span
+                className={`mt-2 text-center text-[0.7rem] font-medium sm:text-xs ${
+                  isActive ? 'text-brand-700' : isDone ? 'text-ink-700' : 'text-ink-400'
+                }`}
+              >
+                {step.label}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+    </nav>
+  )
+}
+
+function BookingSummary({
+  serviceName,
+  durationMinutes,
+  date,
+  time,
+  currentStep,
+  canContinue,
+  submitting,
+  onBack,
+  onContinue,
+  onConfirm,
+}: {
+  serviceName?: string
+  durationMinutes?: number
+  date: string
+  time: string
+  currentStep: StepId
+  canContinue: boolean
+  submitting: boolean
+  onBack: () => void
+  onContinue: () => void
+  onConfirm: () => void
+}) {
+  const rows = [
+    {
+      label: 'Serviço',
+      value: serviceName
+        ? `${serviceName}${durationMinutes ? ` · ${durationMinutes} min` : ''}`
+        : '—',
+    },
+    {
+      label: 'Data',
+      value: date ? formatDateShort(date) : '—',
+    },
+    {
+      label: 'Horário',
+      value: time ? time.slice(0, 5) : '—',
+    },
+  ]
+
+  return (
+    <aside className="flex h-full flex-col rounded-2xl border border-ink-100 bg-ink-50/80 p-4 sm:p-5">
+      <h3 className="font-display text-sm font-semibold text-ink-900">Resumo</h3>
+      <ul className="mt-4 space-y-3 text-sm">
+        {rows.map((row) => (
+          <li key={row.label} className="flex flex-col gap-0.5 border-b border-ink-100 pb-3 last:border-0">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
+              {row.label}
+            </span>
+            <span className={`font-medium ${row.value === '—' ? 'text-ink-300' : 'text-ink-800'}`}>
+              {row.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-auto flex flex-col gap-2 pt-6">
+        {currentStep > 1 ? (
+          <Button type="button" variant="secondary" className="w-full" onClick={onBack}>
+            <ChevronLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+        ) : null}
+
+        {currentStep < 4 ? (
+          <Button
+            type="button"
+            className="w-full"
+            disabled={!canContinue}
+            onClick={onContinue}
+          >
+            Continuar
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            className="w-full"
+            disabled={submitting || !canContinue}
+            onClick={onConfirm}
+          >
+            {submitting ? 'Agendando...' : 'Confirmar agendamento'}
+          </Button>
+        )}
+      </div>
+    </aside>
+  )
+}
+
 export function BookingForm() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { isAuthenticated, role } = useAuth()
   const { services, loading: servicesLoading, error: servicesError, reload } = useServices()
   const [submitting, setSubmitting] = useState(false)
-  const timeSectionRef = useRef<HTMLDivElement>(null)
-  const detailsSectionRef = useRef<HTMLDivElement>(null)
+  const [step, setStep] = useState<StepId>(1)
 
   const {
     register,
@@ -100,6 +226,7 @@ export function BookingForm() {
     setValue,
     setError,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -149,26 +276,36 @@ export function BookingForm() {
     setValue('appointmentTime', '')
   }, [selectedDate, selectedServiceId, setValue])
 
-  useEffect(() => {
-    if (!selectedDate || !selectedServiceId) {
-      return
-    }
-    timeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [selectedDate, selectedServiceId])
-
-  useEffect(() => {
-    if (!selectedTime) {
-      return
-    }
-    detailsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [selectedTime])
-
   const selectedService = useMemo(
     () => services.find((service) => String(service.id) === selectedServiceId),
     [services, selectedServiceId],
   )
 
-  const summaryReady = Boolean(selectedDate && selectedTime && selectedService)
+  const completedThrough = useMemo(() => {
+    if (!selectedServiceId) return 0
+    if (!selectedDate) return 1
+    if (!selectedTime) return 2
+    return 3
+  }, [selectedServiceId, selectedDate, selectedTime])
+
+  const canContinue = useMemo(() => {
+    if (step === 1) return Boolean(selectedServiceId)
+    if (step === 2) return Boolean(selectedDate)
+    if (step === 3) return Boolean(selectedTime)
+    return Boolean(selectedServiceId && selectedDate && selectedTime)
+  }, [step, selectedServiceId, selectedDate, selectedTime])
+
+  const goNext = () => {
+    if (step < 4 && canContinue) {
+      setStep((step + 1) as StepId)
+    }
+  }
+
+  const goBack = () => {
+    if (step > 1) {
+      setStep((step - 1) as StepId)
+    }
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitting(true)
@@ -213,6 +350,14 @@ export function BookingForm() {
     }
   })
 
+  const handleConfirmClick = async () => {
+    const valid = await trigger(['customerName', 'customerPhone'])
+    if (!valid) {
+      return
+    }
+    void onSubmit()
+  }
+
   if (servicesLoading) {
     return (
       <Card>
@@ -246,148 +391,226 @@ export function BookingForm() {
     )
   }
 
+  const stepTitles: Record<StepId, { title: string; description: string }> = {
+    1: {
+      title: 'Escolha o serviço',
+      description: 'A duração define quanto tempo será reservado na agenda.',
+    },
+    2: {
+      title: 'Escolha a data',
+      description: selectedService
+        ? `Dia para ${selectedService.name} (${selectedService.durationMinutes} min).`
+        : 'Selecione um dia disponível.',
+    },
+    3: {
+      title: 'Escolha o horário',
+      description: selectedDate
+        ? `Horários livres para ${formatDateLabel(selectedDate)}.`
+        : 'Selecione um horário disponível.',
+    },
+    4: {
+      title: 'Seus dados',
+      description: 'Informe nome e telefone para confirmar o agendamento.',
+    },
+  }
+
   return (
-    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-4 sm:gap-5">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (step === 4) {
+          void handleConfirmClick()
+        }
+      }}
+      className="mx-auto w-full max-w-5xl"
+    >
+      <input type="hidden" {...register('serviceId')} />
       <input type="hidden" {...register('appointmentDate')} />
       <input type="hidden" {...register('appointmentTime')} />
 
-      <Card className="space-y-4">
-        <StepHeading
-          step={1}
-          title="Escolha o serviço"
-          description="A duração define quanto tempo será reservado na agenda."
-          done={Boolean(selectedServiceId)}
-          icon={Scissors}
-        />
-        <Select
-          label="Serviço"
-          placeholder="Selecione um serviço"
-          error={errors.serviceId?.message}
-          options={services.map((service) => ({
-            value: String(service.id),
-            label: `${service.name} · ${service.durationMinutes} min`,
-          }))}
-          {...register('serviceId')}
-        />
-      </Card>
-
-      <Card className="space-y-1">
-        <StepHeading
-          step={2}
-          title="Escolha a data"
-          description={
-            selectedService
-              ? `Dia para ${selectedService.name} (${selectedService.durationMinutes} min).`
-              : 'Selecione o serviço acima para continuar.'
-          }
-          done={Boolean(selectedDate)}
-          icon={CalendarDays}
-        />
-        {!selectedServiceId ? (
-          <p className="rounded-xl bg-ink-50 px-4 py-8 text-center text-sm text-ink-500">
-            Escolha o serviço primeiro.
-          </p>
-        ) : (
-          <Calendar
-            selectedDate={selectedDate}
-            onSelect={(date) => setValue('appointmentDate', date, { shouldValidate: true })}
-          />
-        )}
-        {errors.appointmentDate ? (
-          <p className="pt-2 text-xs text-red-600">{errors.appointmentDate.message}</p>
-        ) : null}
-      </Card>
-
-      <Card ref={timeSectionRef} className="space-y-1">
-        <StepHeading
-          step={3}
-          title="Escolha o horário"
-          description={
-            selectedDate && selectedService
-              ? `Horários livres para ${formatDateLabel(selectedDate)} · ${selectedService.durationMinutes} min.`
-              : 'Depois do serviço e da data, os horários aparecem aqui.'
-          }
-          done={Boolean(selectedTime)}
-          icon={Clock3}
-        />
-        {!selectedServiceId || !selectedDate ? (
-          <p className="rounded-xl bg-ink-50 px-4 py-8 text-center text-sm text-ink-500">
-            Selecione serviço e data para ver os horários.
-          </p>
-        ) : slotsError ? (
-          <ErrorState
-            message={slotsError}
-            onRetry={reloadAvailability}
-            soft={/conectar|servidor|CORS|iniciando|acordando/i.test(slotsError)}
-          />
-        ) : (
-          <TimeSlotPicker
-            slots={slots}
-            selected={selectedTime}
-            loading={slotsLoading}
-            error={null}
-            onSelect={(slot) => setValue('appointmentTime', slot, { shouldValidate: true })}
-          />
-        )}
-        {errors.appointmentTime ? (
-          <p className="pt-2 text-xs text-red-600">{errors.appointmentTime.message}</p>
-        ) : null}
-      </Card>
-
-      <Card ref={detailsSectionRef} className="space-y-4">
-        <StepHeading
-          step={4}
-          title="Seus dados"
-          description="Confira o resumo e finalize o agendamento."
-          done={summaryReady}
-          icon={UserRound}
-        />
-
-        {summaryReady ? (
-          <div className="rounded-xl border border-brand-200 bg-brand-50/70 px-4 py-3 text-sm text-brand-900">
-            <p className="font-semibold">{selectedService?.name}</p>
-            <p className="mt-0.5 capitalize">
-              {formatDateLabel(selectedDate)} · {selectedTime.slice(0, 5)}
-              {selectedService ? ` · ${selectedService.durationMinutes} min` : ''}
-            </p>
-          </div>
-        ) : (
-          <p className="rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-500">
-            Complete serviço, data e horário para ver o resumo.
-          </p>
-        )}
-
-        <div className="space-y-4">
-          <Input
-            label="Nome"
-            placeholder="Seu nome completo"
-            autoComplete="name"
-            error={errors.customerName?.message}
-            {...register('customerName')}
-          />
-          <Controller
-            name="customerPhone"
-            control={control}
-            render={({ field }) => (
-              <PhoneField
-                label="Telefone"
-                value={field.value}
-                onChange={(value) => field.onChange(value ?? '')}
-                onBlur={field.onBlur}
-                error={errors.customerPhone?.message}
-                defaultCountry="BR"
-              />
-            )}
-          />
+      <Card className="overflow-hidden p-0 sm:p-0">
+        <div className="border-b border-ink-100 px-4 py-5 sm:px-6 sm:py-6">
+          <BookingStepper currentStep={step} completedThrough={completedThrough} />
         </div>
 
-        <Button
-          type="submit"
-          className="w-full sm:w-auto sm:min-w-[14rem]"
-          disabled={submitting || !summaryReady}
-        >
-          {submitting ? 'Agendando...' : 'Confirmar agendamento'}
-        </Button>
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="space-y-5 px-4 py-5 sm:px-6 sm:py-6">
+            <div>
+              <h2 className="font-display text-xl font-semibold text-ink-900 sm:text-2xl">
+                {stepTitles[step].title}
+              </h2>
+              <p className="mt-1 text-sm text-ink-500">{stepTitles[step].description}</p>
+            </div>
+
+            {step === 1 ? (
+              <div className="grid gap-2 sm:gap-3">
+                {services.map((service) => {
+                  const active = String(service.id) === selectedServiceId
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      onClick={() => {
+                        setValue('serviceId', String(service.id), { shouldValidate: true })
+                        setValue('appointmentDate', '')
+                        setValue('appointmentTime', '')
+                      }}
+                      className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition sm:px-5 ${
+                        active
+                          ? 'border-brand-600 bg-brand-50/80 ring-2 ring-brand-200'
+                          : 'border-ink-200 bg-white hover:border-brand-300 hover:bg-brand-50/40'
+                      }`}
+                      aria-pressed={active}
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-display text-base font-semibold text-ink-900">
+                          {service.name}
+                        </span>
+                        <span className="mt-0.5 block text-sm text-ink-500">
+                          {service.durationMinutes} min
+                        </span>
+                      </span>
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                          active ? 'bg-brand-600 text-white' : 'border-2 border-ink-200'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {active ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : null}
+                      </span>
+                    </button>
+                  )
+                })}
+                {errors.serviceId ? (
+                  <p className="text-xs text-red-600">{errors.serviceId.message}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {step === 2 ? (
+              <div>
+                <Calendar
+                  selectedDate={selectedDate}
+                  onSelect={(date) => setValue('appointmentDate', date, { shouldValidate: true })}
+                />
+                {errors.appointmentDate ? (
+                  <p className="pt-2 text-xs text-red-600">{errors.appointmentDate.message}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {step === 3 ? (
+              <div>
+                {slotsError ? (
+                  <ErrorState
+                    message={slotsError}
+                    onRetry={reloadAvailability}
+                    soft={/conectar|servidor|CORS|iniciando|acordando/i.test(slotsError)}
+                  />
+                ) : (
+                  <TimeSlotPicker
+                    slots={slots}
+                    selected={selectedTime}
+                    loading={slotsLoading}
+                    error={null}
+                    onSelect={(slot) => setValue('appointmentTime', slot, { shouldValidate: true })}
+                  />
+                )}
+                {errors.appointmentTime ? (
+                  <p className="pt-2 text-xs text-red-600">{errors.appointmentTime.message}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {step === 4 ? (
+              <div className="space-y-4">
+                {canContinue ? (
+                  <div className="rounded-xl border border-brand-200 bg-brand-50/70 px-4 py-3 text-sm text-brand-900">
+                    <p className="font-semibold">{selectedService?.name}</p>
+                    <p className="mt-0.5 capitalize">
+                      {formatDateLabel(selectedDate)} · {selectedTime.slice(0, 5)}
+                      {selectedService ? ` · ${selectedService.durationMinutes} min` : ''}
+                    </p>
+                  </div>
+                ) : null}
+
+                <Input
+                  label="Nome"
+                  placeholder="Seu nome completo"
+                  autoComplete="name"
+                  error={errors.customerName?.message}
+                  {...register('customerName')}
+                />
+                <Controller
+                  name="customerPhone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneField
+                      label="Telefone"
+                      value={field.value}
+                      onChange={(value) => field.onChange(value ?? '')}
+                      onBlur={field.onBlur}
+                      error={errors.customerPhone?.message}
+                      defaultCountry="BR"
+                    />
+                  )}
+                />
+
+                {/* Mobile-only actions (sidebar hidden below lg) */}
+                <div className="flex flex-col gap-2 pt-2 lg:hidden">
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={submitting || !canContinue}
+                    onClick={() => void handleConfirmClick()}
+                  >
+                    {submitting ? 'Agendando...' : 'Confirmar agendamento'}
+                  </Button>
+                  <Button type="button" variant="secondary" className="w-full" onClick={goBack}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Voltar
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {step < 4 ? (
+              <div className="flex flex-col gap-2 border-t border-ink-100 pt-5 lg:hidden">
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={!canContinue}
+                  onClick={goNext}
+                >
+                  Continuar
+                </Button>
+                {step > 1 ? (
+                  <Button type="button" variant="secondary" className="w-full" onClick={goBack}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Voltar
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="hidden border-t border-ink-100 lg:block lg:border-t-0 lg:border-l">
+            <div className="sticky top-4 h-full p-5">
+              <BookingSummary
+                serviceName={selectedService?.name}
+                durationMinutes={selectedService?.durationMinutes}
+                date={selectedDate}
+                time={selectedTime}
+                currentStep={step}
+                canContinue={canContinue}
+                submitting={submitting}
+                onBack={goBack}
+                onContinue={goNext}
+                onConfirm={() => void handleConfirmClick()}
+              />
+            </div>
+          </div>
+        </div>
       </Card>
     </form>
   )
