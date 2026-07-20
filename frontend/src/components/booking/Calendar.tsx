@@ -41,8 +41,8 @@ export function Calendar({ selectedDate, onSelect }: CalendarProps) {
   })
 
   return (
-    <div className="rounded-2xl border border-ink-200 bg-white p-4">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="rounded-2xl border border-ink-200 bg-white p-3 sm:p-4">
+      <div className="mb-3 flex items-center justify-between sm:mb-4">
         <button
           type="button"
           className="rounded-lg p-2 text-ink-600 hover:bg-ink-100"
@@ -55,7 +55,7 @@ export function Calendar({ selectedDate, onSelect }: CalendarProps) {
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <h3 className="font-display text-base font-semibold capitalize text-ink-900">
+        <h3 className="font-display text-sm font-semibold capitalize text-ink-900 sm:text-base">
           {monthLabel}
         </h3>
         <button
@@ -72,13 +72,13 @@ export function Calendar({ selectedDate, onSelect }: CalendarProps) {
         </button>
       </div>
 
-      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-semibold uppercase tracking-wide text-ink-400">
+      <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-ink-400 sm:gap-1 sm:text-xs">
         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((label, index) => (
           <span key={`${label}-${index}`}>{label}</span>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {days.map((day) => {
           const iso = toIsoDate(day)
           const inMonth = day.getMonth() === visibleMonth.getMonth()
@@ -91,13 +91,13 @@ export function Calendar({ selectedDate, onSelect }: CalendarProps) {
               type="button"
               disabled={isPast}
               onClick={() => onSelect(iso)}
-              className={`h-10 rounded-xl text-sm transition ${
+              className={`h-9 rounded-lg text-sm transition sm:h-10 sm:rounded-xl ${
                 isSelected
                   ? 'bg-brand-600 font-semibold text-white'
                   : isPast
                     ? 'cursor-not-allowed text-ink-300'
                     : inMonth
-                      ? 'text-ink-800 hover:bg-brand-50'
+                      ? 'text-ink-800 hover:bg-brand-50 active:bg-brand-100'
                       : 'text-ink-300 hover:bg-ink-50'
               }`}
             >

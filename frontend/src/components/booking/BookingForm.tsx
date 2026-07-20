@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { CalendarDays, CheckCircle2, Clock3, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -26,7 +27,6 @@ const bookingSchema = z.object({
     .string()
     .min(2, 'Informe o nome completo')
     .max(120, 'Nome muito longo'),
-  // Mesmo padrão do backend (Bean Validation) — evita rejeição só depois do submit.
   customerPhone: z
     .string()
     .regex(/^[0-9()+.\- ]{10,30}$/, 'Telefone inválido'),
@@ -37,12 +37,58 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>
 
+function StepHeading({
+  step,
+  title,
+  description,
+  done,
+  icon: Icon,
+}: {
+  step: number
+  title: string
+  description: string
+  done?: boolean
+  icon: typeof CalendarDays
+}) {
+  return (
+    <div className="mb-4 flex items-start gap-3">
+      <span
+        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+          done ? 'bg-brand-600 text-white' : 'bg-brand-50 text-brand-700'
+        }`}
+        aria-hidden="true"
+      >
+        {done ? <CheckCircle2 className="h-4 w-4" /> : step}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-brand-600" aria-hidden="true" />
+          <h2 className="font-display text-lg font-semibold text-ink-900 sm:text-xl">{title}</h2>
+        </div>
+        <p className="mt-0.5 text-sm text-ink-500">{description}</p>
+      </div>
+    </div>
+  )
+}
+
+function formatDateLabel(iso: string): string {
+  if (!iso) return ''
+  const date = new Date(`${iso}T00:00:00`)
+  return date.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+  })
+}
+
 export function BookingForm() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { isAuthenticated, role } = useAuth()
   const { services, loading: servicesLoading, error: servicesError, reload } = useServices()
   const [submitting, setSubmitting] = useState(false)
+  const timeSectionRef = useRef<HTMLDivElement>(null)
+  const detailsSectionRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
@@ -77,7 +123,7 @@ export function BookingForm() {
         setValue('customerPhone', profile.phone)
       })
       .catch(() => {
-        // Se o perfil não carregar, deixo o formulário em branco mesmo.
+        // Perfil opcional: se falhar, o cliente preenche manualmente.
       })
 
     return () => {
@@ -87,18 +133,38 @@ export function BookingForm() {
 
   const selectedDate = watch('appointmentDate')
   const selectedTime = watch('appointmentTime')
+  const selectedServiceId = watch('serviceId')
   const {
     slots,
     loading: slotsLoading,
     error: slotsError,
     reload: reloadAvailability,
-  } = useAvailability(
-    selectedDate || null,
-  )
+  } = useAvailability(selectedDate || null)
 
   useEffect(() => {
     setValue('appointmentTime', '')
   }, [selectedDate, setValue])
+
+  useEffect(() => {
+    if (!selectedDate) {
+      return
+    }
+    timeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [selectedDate])
+
+  useEffect(() => {
+    if (!selectedTime) {
+      return
+    }
+    detailsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [selectedTime])
+
+  const selectedService = useMemo(
+    () => services.find((service) => String(service.id) === selectedServiceId),
+    [services, selectedServiceId],
+  )
+
+  const summaryReady = Boolean(selectedDate && selectedTime && selectedService)
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitting(true)
@@ -177,28 +243,85 @@ export function BookingForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <Card className="space-y-4">
-        <div>
-          <h2 className="font-display text-xl font-semibold text-ink-900">Seus dados</h2>
-          <p className="mt-1 text-sm text-ink-500">
-            Preencha as informações para reservar o horário.
+    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-4 sm:gap-5">
+      <input type="hidden" {...register('appointmentDate')} />
+      <input type="hidden" {...register('appointmentTime')} />
+
+      <Card className="space-y-1">
+        <StepHeading
+          step={1}
+          title="Escolha a data"
+          description="Selecione o dia em que deseja ser atendido."
+          done={Boolean(selectedDate)}
+          icon={CalendarDays}
+        />
+        <Calendar
+          selectedDate={selectedDate}
+          onSelect={(date) => setValue('appointmentDate', date, { shouldValidate: true })}
+        />
+        {errors.appointmentDate ? (
+          <p className="pt-2 text-xs text-red-600">{errors.appointmentDate.message}</p>
+        ) : null}
+      </Card>
+
+      <Card ref={timeSectionRef} className="space-y-1">
+        <StepHeading
+          step={2}
+          title="Escolha o horário"
+          description={
+            selectedDate
+              ? `Horários livres para ${formatDateLabel(selectedDate)}.`
+              : 'Depois da data, os horários disponíveis aparecem aqui.'
+          }
+          done={Boolean(selectedTime)}
+          icon={Clock3}
+        />
+        {!selectedDate ? (
+          <p className="rounded-xl bg-ink-50 px-4 py-8 text-center text-sm text-ink-500">
+            Selecione uma data acima para ver os horários.
           </p>
-        </div>
+        ) : slotsError ? (
+          <ErrorState
+            message={slotsError}
+            onRetry={reloadAvailability}
+            soft={/conectar|servidor|CORS|iniciando|acordando/i.test(slotsError)}
+          />
+        ) : (
+          <TimeSlotPicker
+            slots={slots}
+            selected={selectedTime}
+            loading={slotsLoading}
+            error={null}
+            onSelect={(slot) => setValue('appointmentTime', slot, { shouldValidate: true })}
+          />
+        )}
+        {errors.appointmentTime ? (
+          <p className="pt-2 text-xs text-red-600">{errors.appointmentTime.message}</p>
+        ) : null}
+      </Card>
 
-        <Input
-          label="Nome"
-          placeholder="Seu nome completo"
-          error={errors.customerName?.message}
-          {...register('customerName')}
+      <Card ref={detailsSectionRef} className="space-y-4">
+        <StepHeading
+          step={3}
+          title="Confirme o serviço e seus dados"
+          description="Revise o horário escolhido e complete as informações para finalizar."
+          done={summaryReady}
+          icon={UserRound}
         />
 
-        <Input
-          label="Telefone"
-          placeholder="(11) 99999-9999"
-          error={errors.customerPhone?.message}
-          {...register('customerPhone')}
-        />
+        {summaryReady ? (
+          <div className="rounded-xl border border-brand-200 bg-brand-50/70 px-4 py-3 text-sm text-brand-900">
+            <p className="font-semibold">{selectedService?.name}</p>
+            <p className="mt-0.5 capitalize">
+              {formatDateLabel(selectedDate)} · {selectedTime.slice(0, 5)}
+              {selectedService ? ` · ${selectedService.durationMinutes} min` : ''}
+            </p>
+          </div>
+        ) : (
+          <p className="rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-500">
+            Escolha data e horário acima para ver o resumo aqui.
+          </p>
+        )}
 
         <Select
           label="Serviço"
@@ -211,53 +334,31 @@ export function BookingForm() {
           {...register('serviceId')}
         />
 
-        <input type="hidden" {...register('appointmentDate')} />
-        <input type="hidden" {...register('appointmentTime')} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Nome"
+            placeholder="Seu nome completo"
+            autoComplete="name"
+            error={errors.customerName?.message}
+            {...register('customerName')}
+          />
+          <Input
+            label="Telefone"
+            placeholder="(11) 99999-9999"
+            autoComplete="tel"
+            error={errors.customerPhone?.message}
+            {...register('customerPhone')}
+          />
+        </div>
 
-        {errors.appointmentDate ? (
-          <p className="text-xs text-red-600">{errors.appointmentDate.message}</p>
-        ) : null}
-        {errors.appointmentTime ? (
-          <p className="text-xs text-red-600">{errors.appointmentTime.message}</p>
-        ) : null}
-
-        <Button type="submit" className="w-full sm:w-auto" disabled={submitting}>
+        <Button
+          type="submit"
+          className="w-full sm:w-auto sm:min-w-[14rem]"
+          disabled={submitting || !selectedDate || !selectedTime}
+        >
           {submitting ? 'Agendando...' : 'Confirmar agendamento'}
         </Button>
       </Card>
-
-      <div className="space-y-4">
-        <Card>
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink-900">Data</h2>
-          <Calendar
-            selectedDate={selectedDate}
-            onSelect={(date) => setValue('appointmentDate', date, { shouldValidate: true })}
-          />
-        </Card>
-
-        <Card>
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink-900">Horários</h2>
-          {!selectedDate ? (
-            <p className="py-6 text-center text-sm text-ink-500">
-              Selecione uma data para ver os horários disponíveis.
-            </p>
-          ) : slotsError ? (
-            <ErrorState
-              message={slotsError}
-              onRetry={reloadAvailability}
-              soft={/conectar|servidor|CORS|iniciando|acordando/i.test(slotsError)}
-            />
-          ) : (
-            <TimeSlotPicker
-              slots={slots}
-              selected={selectedTime}
-              loading={slotsLoading}
-              error={null}
-              onSelect={(slot) => setValue('appointmentTime', slot, { shouldValidate: true })}
-            />
-          )}
-        </Card>
-      </div>
     </form>
   )
 }

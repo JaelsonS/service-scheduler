@@ -36,7 +36,7 @@ export function TimeSlotPicker({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
       {slots.map((slot) => {
         const active = selected === slot
         return (
@@ -45,7 +45,7 @@ export function TimeSlotPicker({
             type="button"
             onClick={() => onSelect(slot)}
             aria-pressed={active}
-            className={`rounded-xl border px-2 py-2.5 text-sm font-semibold transition ${
+            className={`min-h-11 rounded-xl border px-2 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${
               active
                 ? 'border-brand-600 bg-brand-600 text-white'
                 : 'border-ink-200 bg-white text-ink-700 hover:border-brand-400 hover:text-brand-700'
