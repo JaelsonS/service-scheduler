@@ -17,7 +17,7 @@ import { Card } from '../ui/Card'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Input } from '../ui/Input'
-import { BootAwareSpinner, Spinner } from '../ui/Spinner'
+import { Spinner } from '../ui/Spinner'
 import { Calendar } from './Calendar'
 import { TimeSlotPicker } from './TimeSlotPicker'
 import type { ApiErrorBody } from '../../types/appointment'
@@ -25,6 +25,19 @@ import type { ApiErrorBody } from '../../types/appointment'
 const PhoneField = lazy(() =>
   import('../ui/PhoneField').then((m) => ({ default: m.PhoneField })),
 )
+
+function ServiceListSkeleton() {
+  return (
+    <div className="grid gap-2 sm:gap-3" aria-hidden="true">
+      {[0, 1, 2].map((item) => (
+        <div
+          key={item}
+          className="h-[4.25rem] animate-pulse rounded-2xl border border-ink-100 bg-ink-50"
+        />
+      ))}
+    </div>
+  )
+}
 
 const bookingSchema = z.object({
   customerName: z
@@ -243,7 +256,7 @@ export function BookingForm() {
   })
 
   useEffect(() => {
-    if (!isAuthenticated || role !== 'CLIENT') {
+    if (!isAuthenticated || role !== 'CLIENT' || step !== 4) {
       return
     }
 
@@ -263,7 +276,7 @@ export function BookingForm() {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, role, setValue])
+  }, [isAuthenticated, role, setValue, step])
 
   const selectedDate = watch('appointmentDate')
   const selectedTime = watch('appointmentTime')
@@ -273,7 +286,11 @@ export function BookingForm() {
     loading: slotsLoading,
     error: slotsError,
     reload: reloadAvailability,
-  } = useAvailability(selectedDate || null, selectedServiceId || null)
+  } = useAvailability(
+    selectedDate || null,
+    selectedServiceId || null,
+    step >= 3,
+  )
 
   useEffect(() => {
     setValue('appointmentTime', '')
@@ -292,11 +309,11 @@ export function BookingForm() {
   }, [selectedServiceId, selectedDate, selectedTime])
 
   const canContinue = useMemo(() => {
-    if (step === 1) return Boolean(selectedServiceId)
+    if (step === 1) return Boolean(selectedServiceId) && !servicesLoading
     if (step === 2) return Boolean(selectedDate)
     if (step === 3) return Boolean(selectedTime)
     return Boolean(selectedServiceId && selectedDate && selectedTime)
-  }, [step, selectedServiceId, selectedDate, selectedTime])
+  }, [step, selectedServiceId, selectedDate, selectedTime, servicesLoading])
 
   const goNext = () => {
     if (step < 4 && canContinue) {
@@ -361,39 +378,6 @@ export function BookingForm() {
     void onSubmit()
   }
 
-  if (servicesLoading) {
-    return (
-      <Card>
-        <BootAwareSpinner label="Carregando serviços..." />
-      </Card>
-    )
-  }
-
-  if (servicesError) {
-    const soft = /conectar|servidor|CORS|iniciando|acordando/i.test(servicesError)
-    return (
-      <Card>
-        <ErrorState message={servicesError} onRetry={reload} soft={soft} />
-      </Card>
-    )
-  }
-
-  if (services.length === 0) {
-    return (
-      <Card>
-        <EmptyState
-          title="Nenhum serviço disponível"
-          description="Não há serviços disponíveis para agendamento no momento."
-          action={
-            <Button type="button" variant="secondary" onClick={reload}>
-              Atualizar
-            </Button>
-          }
-        />
-      </Card>
-    )
-  }
-
   const stepTitles: Record<StepId, { title: string; description: string }> = {
     1: {
       title: 'Escolha o serviço',
@@ -416,6 +400,10 @@ export function BookingForm() {
       description: 'Informe nome e telefone para confirmar o agendamento.',
     },
   }
+
+  const softServicesError = Boolean(
+    servicesError && /conectar|servidor|CORS|iniciando|acordando|demorou/i.test(servicesError),
+  )
 
   return (
     <form
@@ -447,43 +435,75 @@ export function BookingForm() {
 
             {step === 1 ? (
               <div className="grid gap-2 sm:gap-3">
-                {services.map((service) => {
-                  const active = String(service.id) === selectedServiceId
-                  return (
-                    <button
-                      key={service.id}
-                      type="button"
-                      onClick={() => {
-                        setValue('serviceId', String(service.id), { shouldValidate: true })
-                        setValue('appointmentDate', '')
-                        setValue('appointmentTime', '')
-                      }}
-                      className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition sm:px-5 ${
-                        active
-                          ? 'border-brand-600 bg-brand-50/80 ring-2 ring-brand-200'
-                          : 'border-ink-200 bg-white hover:border-brand-300 hover:bg-brand-50/40'
-                      }`}
-                      aria-pressed={active}
-                    >
-                      <span className="min-w-0">
-                        <span className="block font-display text-base font-semibold text-ink-900">
-                          {service.name}
-                        </span>
-                        <span className="mt-0.5 block text-sm text-ink-500">
-                          {service.durationMinutes} min
-                        </span>
-                      </span>
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                          active ? 'bg-brand-600 text-white' : 'border-2 border-ink-200'
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {active ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : null}
-                      </span>
-                    </button>
-                  )
-                })}
+                {servicesLoading ? (
+                  <div className="space-y-3">
+                    <ServiceListSkeleton />
+                    <p className="text-center text-xs text-ink-500">
+                      Buscando serviços…
+                    </p>
+                  </div>
+                ) : null}
+
+                {!servicesLoading && servicesError ? (
+                  <ErrorState
+                    message={servicesError}
+                    onRetry={reload}
+                    soft={softServicesError}
+                  />
+                ) : null}
+
+                {!servicesLoading && !servicesError && services.length === 0 ? (
+                  <EmptyState
+                    title="Nenhum serviço disponível"
+                    description="Não há serviços disponíveis para agendamento no momento."
+                    action={
+                      <Button type="button" variant="secondary" onClick={reload}>
+                        Atualizar
+                      </Button>
+                    }
+                  />
+                ) : null}
+
+                {!servicesLoading && !servicesError
+                  ? services.map((service) => {
+                      const active = String(service.id) === selectedServiceId
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => {
+                            setValue('serviceId', String(service.id), { shouldValidate: true })
+                            setValue('appointmentDate', '')
+                            setValue('appointmentTime', '')
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition sm:px-5 ${
+                            active
+                              ? 'border-brand-600 bg-brand-50/80 ring-2 ring-brand-200'
+                              : 'border-ink-200 bg-white hover:border-brand-300 hover:bg-brand-50/40'
+                          }`}
+                          aria-pressed={active}
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-display text-base font-semibold text-ink-900">
+                              {service.name}
+                            </span>
+                            <span className="mt-0.5 block text-sm text-ink-500">
+                              {service.durationMinutes} min
+                            </span>
+                          </span>
+                          <span
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                              active ? 'bg-brand-600 text-white' : 'border-2 border-ink-200'
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {active ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : null}
+                          </span>
+                        </button>
+                      )
+                    })
+                  : null}
+
                 {errors.serviceId ? (
                   <p className="text-xs text-red-600">{errors.serviceId.message}</p>
                 ) : null}

@@ -20,7 +20,7 @@ Feito para o desafio técnico DevClub. Empacotado como produto: API Java, SPA Re
 | **Health** | https://service-scheduler-l3g7.onrender.com/actuator/health |
 | **Código** | https://github.com/JaelsonS/service-scheduler |
 
-> Plano free do Render: a API pode “dormir”. A 1ª chamada após idle leva ~30–60s — depois responde normal.
+> Plano free do Render: a API pode “dormir” após ~15 min sem tráfego. Há um GitHub Action (`keep-api-warm`) que pinga a cada 5 min — **ative Actions no repositório**. Com a API aquecida, `/services` responde em ~200 ms.
 
 ### Contas de demo
 
