@@ -13,9 +13,9 @@ public class OpenApiConfig {
     public OpenAPI serviceSchedulerOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Service Scheduler API")
-                        .description("REST API for scheduling and managing service appointments")
+                        .title("AgendaPro API")
+                        .description("API REST para agendamento e gestão de serviços")
                         .version("v1")
-                        .contact(new Contact().name("Service Scheduler")));
+                        .contact(new Contact().name("AgendaPro")));
     }
 }

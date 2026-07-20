@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '../../api/client'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
+import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 
 const loginSchema = z.object({
@@ -52,6 +53,12 @@ export function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink-50 px-4 py-10">
+      <SeoHead
+        title="Login administrativo"
+        description="Acesso restrito à área administrativa do AgendaPro."
+        path="/admin/login"
+        noIndex
+      />
       <Card className="w-full max-w-md space-y-6">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-600 text-white">

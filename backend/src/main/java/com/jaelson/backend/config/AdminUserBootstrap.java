@@ -13,6 +13,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
+/**
+ * Cria o primeiro admin só se a tabela estiver vazia.
+ * Em prod eu bloqueio as credenciais padrão de desenvolvimento —
+ * sem isso alguém poderia subir o Render e ficar com admin@agendapro.local aberto.
+ */
 @Component
 public class AdminUserBootstrap implements ApplicationRunner {
 
@@ -47,12 +52,18 @@ public class AdminUserBootstrap implements ApplicationRunner {
         }
 
         if (isProduction() && DEVELOPMENT_EMAIL.equals(email) && DEVELOPMENT_PASSWORD.equals(password)) {
-            logger.error("No admin user was created: ADMIN_EMAIL and ADMIN_PASSWORD must be configured in production");
+            logger.error(
+                    "Admin inicial não foi criado: em produção configure ADMIN_EMAIL e ADMIN_PASSWORD "
+                            + "(não use as credenciais padrão de desenvolvimento)"
+            );
             return;
         }
 
         adminUserRepository.save(new AdminUser(email, passwordEncoder.encode(password)));
-        logger.warn("Initial admin user '{}' was created. Change its password after deployment.", email);
+        logger.warn(
+                "Admin inicial '{}' criado. Troque a senha depois do primeiro acesso.",
+                email
+        );
     }
 
     private boolean isProduction() {

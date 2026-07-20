@@ -10,7 +10,7 @@ Neste projeto usamos **Spring Data JPA + Hibernate** como implementação: entit
 
 - Produtividade para CRUD e consultas tipadas.
 - Integração natural com Spring (transações, injeção, testes).
-- Modelo relacional claro para agendamentos e serviços.
+- Modelo relacional claro para agendamentos, serviços, admin e cliente.
 - Compatibilidade com PostgreSQL/Supabase.
 
 Alternativas (SQL puro, JDBC Template) são válidas, mas aumentariam o volume de código para o escopo do desafio.
@@ -35,6 +35,7 @@ Práticas aplicadas:
 - `@EntityGraph` quando precisamos do `service` junto do `appointment`;
 - paginação na listagem administrativa;
 - índices no SQL (Flyway) alinhados às consultas frequentes;
-- timezone via `hibernate.jdbc.time_zone` / `APP_TIMEZONE`.
+- timezone via `hibernate.jdbc.time_zone` / `APP_TIMEZONE` (`America/Sao_Paulo`);
+- pool Hikari configurável (`DB_POOL_MAX_SIZE`, etc.) para o Render/Supabase.
 
 Em resumo: JPA persiste e consulta; **Flyway versiona o schema**.

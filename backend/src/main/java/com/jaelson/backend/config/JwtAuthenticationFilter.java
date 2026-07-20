@@ -17,6 +17,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Lê o Bearer token, valida e coloca o usuário no SecurityContext.
+ * Se o token for inválido, sigo a cadeia sem autenticar —
+ * quem decide 401/403 é o SecurityFilterChain, não eu.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

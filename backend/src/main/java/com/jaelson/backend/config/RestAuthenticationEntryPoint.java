@@ -29,7 +29,7 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletResponse response,
             AuthenticationException authenticationException
     ) throws IOException {
-        writeError(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication is required", request);
+        writeError(response, HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Faça login para continuar", request);
     }
 
     void writeError(

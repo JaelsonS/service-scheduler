@@ -8,7 +8,7 @@ public class ServiceNotFoundException extends BusinessException {
         super(
                 HttpStatus.NOT_FOUND,
                 "SERVICE_NOT_FOUND",
-                "Service with id " + serviceId + " was not found"
+                "Serviço não encontrado"
         );
     }
 }

@@ -22,6 +22,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Ponto único de tratamento de erros da API.
+ * Sempre devolvo ErrorResponseDTO — o front conta com `code` + `fieldErrors`
+ * para toast e validação inline. Nunca vazamos stack trace para o cliente.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -52,7 +57,7 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toMap(
                         error -> error.getField(),
                         error -> error.getDefaultMessage() == null
-                                ? "Invalid value"
+                                ? "Valor inválido"
                                 : error.getDefaultMessage(),
                         (firstMessage, ignoredMessage) -> firstMessage,
                         LinkedHashMap::new
@@ -61,7 +66,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "VALIDATION_ERROR",
-                "Request validation failed",
+                "Verifique os campos e tente novamente",
                 request.getRequestURI(),
                 fieldErrors
         );
@@ -84,7 +89,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "VALIDATION_ERROR",
-                "Request validation failed",
+                "Verifique os campos e tente novamente",
                 request.getRequestURI(),
                 fieldErrors
         );
@@ -98,7 +103,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "MALFORMED_REQUEST",
-                "Request body is invalid",
+                "Dados enviados estão em formato inválido",
                 request.getRequestURI(),
                 Map.of()
         );
@@ -112,7 +117,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "MISSING_PARAMETER",
-                "Required parameter '" + exception.getParameterName() + "' is missing",
+                "Parâmetro obrigatório ausente: " + exception.getParameterName(),
                 request.getRequestURI(),
                 Map.of()
         );
@@ -126,7 +131,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "INVALID_PARAMETER",
-                "Parameter '" + exception.getName() + "' has an invalid value",
+                "Parâmetro inválido: " + exception.getName(),
                 request.getRequestURI(),
                 Map.of()
         );
@@ -140,7 +145,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.NOT_FOUND,
                 "RESOURCE_NOT_FOUND",
-                "The requested resource was not found",
+                "Recurso não encontrado",
                 request.getRequestURI(),
                 Map.of()
         );
@@ -156,13 +161,13 @@ public class GlobalExceptionHandler {
                 ? mostSpecificCause.getMessage()
                 : exception.getMessage();
         String sqlState = tryExtractPostgresSqlState(mostSpecificCause != null ? mostSpecificCause : exception);
-        logger.warn("Data integrity violation (sqlState={}): {}", sqlState, causeMessage);
+        logger.warn("Violação de integridade no banco (sqlState={}): {}", sqlState, causeMessage);
 
         if ("23505".equals(sqlState)) {
             return buildResponse(
                     HttpStatus.CONFLICT,
                     "APPOINTMENT_CONFLICT",
-                    "There is already an active appointment at the selected date and time",
+                    "Já existe um agendamento ativo neste horário",
                     request.getRequestURI(),
                     Map.of()
             );
@@ -171,7 +176,7 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "DATA_INTEGRITY_VIOLATION",
-                "Request cannot be processed due to a data integrity constraint",
+                "Não foi possível salvar os dados. Tente novamente",
                 request.getRequestURI(),
                 Map.of()
         );
@@ -182,12 +187,12 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
-        logger.error("Unexpected application error", exception);
+        logger.error("Erro inesperado na aplicação", exception);
 
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
-                "An unexpected error occurred",
+                "Algo deu errado. Tente novamente em instantes",
                 request.getRequestURI(),
                 Map.of()
         );

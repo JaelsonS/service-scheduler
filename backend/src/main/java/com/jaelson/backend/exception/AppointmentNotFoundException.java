@@ -8,7 +8,7 @@ public class AppointmentNotFoundException extends BusinessException {
         super(
                 HttpStatus.NOT_FOUND,
                 "APPOINTMENT_NOT_FOUND",
-                "Appointment with id " + appointmentId + " was not found"
+                "Agendamento não encontrado"
         );
     }
 }

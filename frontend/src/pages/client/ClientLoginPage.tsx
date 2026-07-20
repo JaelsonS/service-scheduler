@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '../../api/client'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
+import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 
 const loginSchema = z.object({
@@ -50,6 +51,11 @@ export function ClientLoginPage() {
 
   return (
     <section className="mx-auto max-w-md space-y-6 py-8">
+      <SeoHead
+        title="Entrar"
+        description="Acesse sua conta de cliente no AgendaPro para ver e cancelar agendamentos."
+        path="/entrar"
+      />
       <Card className="space-y-6">
         <div className="text-center">
           <h1 className="font-display text-3xl font-bold text-ink-900">Entrar</h1>

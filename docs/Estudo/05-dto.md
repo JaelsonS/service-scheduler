@@ -10,8 +10,8 @@ No projeto, DTOs são principalmente `record`s Java: imutáveis, explícitos e i
 
 - Controlar exatamente o que entra e sai da API.
 - Evitar acoplar o frontend ao modelo JPA.
-- Aplicar Bean Validation (`@NotBlank`, `@FutureOrPresent`, etc.) no contrato de entrada.
-- Reduzir risco de N+1 e de expor campos sensíveis.
+- Aplicar Bean Validation (`@NotBlank`, `@Size`, `@Pattern`, `@Email`, etc.) no contrato de entrada.
+- Reduzir risco de N+1 e de expor campos sensíveis (ex.: hash de senha nunca sai).
 
 Esta é a decisão registrada no ADR-004: **nunca retornar Entity diretamente**.
 
@@ -20,9 +20,9 @@ Esta é a decisão registrada no ADR-004: **nunca retornar Entity diretamente**.
 Pacotes principais:
 
 ```text
-dto/appointment/   → create, response, list, availability, status update
+dto/appointment/   → create, response, list, availability, summary, status update
 dto/service/       → ServiceResponseDTO
-dto/auth/          → login, refresh, token response
+dto/auth/          → login, register cliente, refresh, token response, profile
 dto/error/         → ErrorResponseDTO
 ```
 
@@ -32,10 +32,14 @@ Exemplos:
 |-----|--------|
 | `AppointmentCreateRequestDTO` | Entrada do cliente para agendar |
 | `AppointmentResponseDTO` | Resposta completa do agendamento |
-| `AppointmentListResponseDTO` | Página administrativa |
+| `AppointmentListResponseDTO` | Página administrativa / minha conta |
 | `AvailabilityResponseDTO` | Slots livres de um dia |
-| `LoginRequestDTO` / `AuthTokenResponseDTO` | Autenticação admin |
-| `ErrorResponseDTO` | Formato único de erro da API |
+| `AppointmentSummaryResponseDTO` | Cards de resumo por status (admin) |
+| `LoginRequestDTO` / `AuthTokenResponseDTO` | Autenticação admin e cliente |
+| `ClientRegisterRequestDTO` / `ClientProfileResponseDTO` | Cadastro e perfil do cliente |
+| `ErrorResponseDTO` | Formato único de erro (`code`, `message`, `fieldErrors`) |
+
+Mensagens de validação nos DTOs estão em **português** (ex.: `"Informe o nome"`, `"Telefone inválido"`) para o frontend exibir direto no toast/form.
 
 Conversões ficam em mappers estáticos:
 

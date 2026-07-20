@@ -1,8 +1,8 @@
-# Service Scheduler
+# AgendaPro — Service Scheduler
 
-Aplicação full stack de agendamento de serviços, desenvolvida para o desafio técnico do DevClub.
+Sistema full-stack de agendamento de serviços, desenvolvido para o desafio técnico do DevClub.
 
-MVP funcional: clientes agendam com horários reais; administradores gerenciam a agenda com JWT; persistência em PostgreSQL (Supabase) versionada com Flyway.
+Clientes agendam online com horários reais (sem conflito). Administradores gerenciam a agenda com autenticação JWT. Persistência em PostgreSQL, schema versionado com Flyway.
 
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-green)](https://spring.io/projects/spring-boot)
@@ -11,164 +11,42 @@ MVP funcional: clientes agendam com horários reais; administradores gerenciam a
 
 ---
 
-## Demo
+## Demo em produção
 
-| Link | URL |
-|------|-----|
-| Frontend (Vercel) | https://service-scheduler-puce.vercel.app |
-| Backend (Render) | https://service-scheduler-l3g7.onrender.com |
+| Recurso | URL |
+|---------|-----|
+| Frontend | https://service-scheduler-puce.vercel.app |
+| Backend API | https://service-scheduler-l3g7.onrender.com/api/v1 |
 | Health | https://service-scheduler-l3g7.onrender.com/actuator/health |
 | Repositório | https://github.com/JaelsonS/service-scheduler |
 
-API base para o frontend: `https://service-scheduler-l3g7.onrender.com/api/v1`
+> No Render (plano free), o backend pode “dormir” após inatividade. A primeira requisição pode levar ~30–60s.
 
-No Render, `CORS_ALLOWED_ORIGINS` pode listar URLs extras; o backend já libera `https://*.vercel.app` (produção e previews).
-
-Use a URL estável da Vercel: https://service-scheduler-puce.vercel.app  
-(evite abrir links de deploy temporários `*-projects.vercel.app` no dia a dia).
-
-### Credenciais de demo
+### Credenciais de demonstração
 
 | Papel | E-mail | Senha |
 |-------|--------|--------|
 | Admin | `admin@agendapro.local` | `Admin@12345` |
-| Cliente | cadastro livre em `/cadastro` | — |
-
-Em produção, o admin é o definido em `ADMIN_EMAIL` / `ADMIN_PASSWORD` no Render. Se a tabela de admin estiver vazia e as credenciais forem as padrão de desenvolvimento, o bootstrap em `prod` bloqueia a criação automática — configure valores explícitos no painel.
-
-Guia completo de infra: [`docs/setup-externo.md`](docs/setup-externo.md).
-
----
-
-## Entrega DevClub (checklist)
-
-| Requisito | Como foi atendido |
-|-----------|-------------------|
-| Cliente agenda sem login | `POST /api/v1/appointments` público + home com slots |
-| Confirmação | Página `/confirmacao/:id` |
-| Admin lista / filtra / status / exclui | `/admin` com JWT `ADMIN` |
-| Responsivo + validação | Tailwind + Zod (front) / Bean Validation (back) |
-| Persistência | PostgreSQL (Supabase) + Flyway |
-| GitHub público + deploy | Links na seção [Demo](#demo) |
-| Conta de cliente (extra) | Cadastro/login opcional + `/minha-conta` |
-| Documentação | Este README + `docs/` |
-
-### Ferramentas de IA
-
-Desenvolvimento assistido por **Cursor** (Composer / Agent) para acelerar scaffolding, testes, CORS/deploy e documentação. O uso foi consciente:
-
-- eu defini escopo, regras de negócio e trade-offs;
-- a IA propôs código e diffs; revisei, adaptei e rodei `./mvnw test` / `npm run build`;
-- decisões finais e validação da demo pública ficaram sob responsabilidade do autor.
-
----
-
-## Status do MVP
-
-| Item | Situação |
-|------|----------|
-| Fluxo cliente (agendar → confirmar) | Pronto |
-| Conta cliente opcional (JWT `CLIENT`) | Pronto |
-| Área admin (JWT, busca, summary, status) | Pronto |
-| Testes backend (`./mvnw test`) | Pronto |
-| Build frontend (`npm run build`) | Pronto |
-| Documentação / ADRs | Pronto |
-| Código completo no GitHub | Pronto |
-| Deploy backend (Render) | Pronto |
-| Deploy frontend (Vercel) | Pronto |
-| Screenshots no README | Pronto |
-
----
-
-## Sumário
-
-- [Demo](#demo)
-- [Entrega DevClub (checklist)](#entrega-devclub-checklist)
-- [Status do MVP](#status-do-mvp)
-- [Descrição](#descrição)
-- [Arquitetura](#arquitetura)
-- [Tecnologias](#tecnologias)
-- [Estrutura do repositório](#estrutura-do-repositório)
-- [Como executar](#como-executar)
-- [Variáveis de ambiente](#variáveis-de-ambiente)
-- [API](#api)
-- [Swagger](#swagger)
-- [Fluxo da aplicação](#fluxo-da-aplicação)
-- [Deploy](#deploy)
-- [Decisões arquiteturais](#decisões-arquiteturais)
-- [Trade-offs](#trade-offs)
-- [Roadmap](#roadmap)
-- [Screenshots](#screenshots)
-- [Qualidade](#qualidade)
-- [Autor](#autor)
+| Cliente | Cadastro livre em `/cadastro` | — |
 
 ---
 
 ## Descrição
 
-### Área do cliente (público)
+### Cliente (público)
 
-- Selecionar serviço
-- Informar nome e telefone
-- Escolher data e horário disponível
-- Receber confirmação do agendamento
-- Horários ocupados não aparecem como disponíveis
+- Agendar serviço informando nome, telefone, serviço, data e horário
+- Consultar apenas horários disponíveis (ocupados não aparecem)
+- Visualizar confirmação em `/confirmacao/:id`
+- Conta opcional (`/cadastro`, `/entrar`) para ver e cancelar os próprios agendamentos em `/minha-conta`
 
-### Conta do cliente (opcional)
+### Administrador
 
-- Cadastro e login com JWT (`CLIENT`)
-- Ver e cancelar os próprios agendamentos em `/minha-conta`
-- Ao agendar logado, o agendamento é vinculado à conta (nome/telefone pré-preenchidos)
-
-### Área administrativa
-
-- Login com e-mail e senha (JWT `ADMIN`)
-- Listar agendamentos com paginação
-- Filtrar por data e buscar por nome/telefone (`q`)
-- Cards de resumo do dia (por status)
-- Alterar status (`AGENDADO` → `CONFIRMADO` → `CONCLUIDO` / `CANCELADO`)
-- Visualizar dados do cliente
-- Excluir agendamento
-- Logout com invalidação de refresh token
-
----
-
-## Arquitetura
-
-Arquitetura em camadas no backend:
-
-```text
-Controller → Service → Repository → PostgreSQL (Supabase)
-```
-
-Organização por responsabilidade:
-
-```text
-controller | service | repository | entity | dto
-exception  | validation | config | enums | utils
-```
-
-Frontend:
-
-```text
-pages → hooks → api (Axios) → backend REST
-components (ui / layout / booking / auth)
-```
-
-```mermaid
-flowchart LR
-  Client[React Client] -->|REST /api/v1| API[Spring Boot]
-  Admin[Admin UI + JWT] -->|Bearer token| API
-  API --> Services[Service Layer]
-  Services --> Repos[Spring Data JPA]
-  Repos --> DB[(PostgreSQL Supabase)]
-  API --> Flyway[Flyway Migrations]
-  Flyway --> DB
-```
-
-Documentação detalhada: [`docs/architecture-decisions.md`](docs/architecture-decisions.md), [`docs/project-decisions.md`](docs/project-decisions.md) e setup externo em [`docs/setup-externo.md`](docs/setup-externo.md).
-
-Notas de estudo para entrevista: [`docs/Estudo/README.md`](docs/Estudo/README.md).
+- Login em `/admin/login` (JWT com role `ADMIN`)
+- Listar todos os agendamentos com dados do cliente
+- Filtrar por data e buscar por nome/telefone
+- Alterar status: `AGENDADO` → `CONFIRMADO` → `CONCLUIDO` / `CANCELADO`
+- Cancelar ou excluir agendamentos
 
 ---
 
@@ -176,59 +54,81 @@ Notas de estudo para entrevista: [`docs/Estudo/README.md`](docs/Estudo/README.md
 
 | Camada | Stack |
 |--------|--------|
-| Backend | Java 25, Spring Boot 4.1, Spring Web, Spring Data JPA, Spring Security, Bean Validation, Flyway, springdoc OpenAPI |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, React Hook Form, Zod, React Router, Axios |
-| Banco | PostgreSQL (Supabase) |
-| Deploy | Frontend na Vercel, Backend no Render |
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 4, React Router 7, React Hook Form, Zod, Axios |
+| **Backend** | Java 25, Spring Boot 4.1, Spring Web, Spring Data JPA, Spring Security, Bean Validation, Flyway, Actuator, springdoc OpenAPI |
+| **Banco** | PostgreSQL (Supabase em produção; local opcional) |
+| **Auth** | JWT (access + refresh), BCrypt, roles `ADMIN` / `CLIENT` |
+| **Deploy** | Frontend: Vercel · Backend: Render (Docker) · DB: Supabase |
+
+
+## Decisões técnicas
+
+Optei por um **backend em Spring Boot** para aprofundar estudos em Java (camadas, JPA, Security, Flyway, Bean Validation), mesmo podendo ter usado soluções mais simples como Supabase Edge Functions ou um BaaS completo.
+
+Outras escolhas importantes:
+
+- **PostgreSQL + Flyway** — schema versionado; Hibernate em modo `validate` (não cria tabelas sozinho)
+- **Índice único parcial** — impede dois agendamentos ativos no mesmo horário mesmo sob concorrência
+- **JWT stateless** — CSRF desnecessário (token no header, sem cookie de sessão)
+- **Rate limiting em memória** — proteção básica por IP (adequado a instância única no Render)
+- **CORS restrito** — localhost + `*.vercel.app` + origens extras via env
+- **SEO em SPA** — meta tags estáticas no `index.html` + `SeoHead` dinâmico por rota; `robots.txt` e `sitemap.xml`
+
+Detalhes: [`docs/architecture-decisions.md`](docs/architecture-decisions.md) e [`docs/project-decisions.md`](docs/project-decisions.md).
 
 ---
 
-## Estrutura do repositório
+## Estrutura do projeto
 
 ```text
 service-scheduler/
-├── backend/                 # API Spring Boot
-│   ├── src/main/java/...    # Código-fonte
-│   ├── src/main/resources/  # application*.properties + Flyway
-│   ├── src/test/java/...    # Testes unitários / WebMvc
-│   ├── .env.example
-│   └── render.yaml
-├── frontend/                # SPA React
-│   ├── src/
-│   ├── .env.example
-│   └── vercel.json
-├── docs/                    # ADRs e decisões
+├── backend/                  # API Spring Boot
+│   ├── src/main/java/...     # Controllers, services, security, DTOs
+│   ├── src/main/resources/   # application*.properties + Flyway (V1–V4)
+│   ├── src/test/java/...     # Testes
+│   ├── Dockerfile            # Deploy Render
+│   ├── render.yaml
+│   └── .env.example
+├── frontend/                 # SPA React
+│   ├── src/pages/            # Cliente + Admin
+│   ├── src/components/       # UI, booking, layout, SEO
+│   ├── public/               # favicon, robots.txt, sitemap.xml
+│   ├── vercel.json
+│   └── .env.example
+├── docs/                     # ADRs, setup externo, screenshots, estudo
 └── README.md
 ```
 
 ---
 
-## Como executar
+## Como executar localmente
 
 ### Pré-requisitos
 
 - Java 25
-- Maven 3.9+ (ou `./mvnw`)
+- Maven Wrapper (`./mvnw` incluso) ou Maven 3.9+
 - Node.js 20+
-- Projeto PostgreSQL no Supabase (ou Postgres local)
+- PostgreSQL (Supabase gratuito ou instância local)
 
 ### 1. Banco de dados
-
-1. Crie um projeto no [Supabase](https://supabase.com/).
-2. Em **Project Settings → Database**, copie a connection string URI.
-3. Monte o JDBC:
-
-```text
-jdbc:postgresql://db.<PROJECT_REF>.supabase.co:5432/postgres
-```
-
-4. Configure `backend/.env` (nunca commitar):
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-As migrations Flyway (`V1` schema, `V2` seed de serviços, `V3` admin_users, `V4` client_users) são aplicadas automaticamente na subida da API.
+Preencha no mínimo:
+
+| Variável | Descrição |
+|----------|-----------|
+| `DB_URL` | JDBC PostgreSQL (`jdbc:postgresql://...`) |
+| `DB_USERNAME` / `DB_PASSWORD` | Credenciais |
+| `JWT_SECRET` | String aleatória com ≥ 32 caracteres |
+| `CORS_ALLOWED_ORIGINS` | Ex.: `http://localhost:5173` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Admin inicial |
+
+As migrations Flyway (`V1`–`V4`) e o seed de serviços rodam automaticamente na subida da API. O admin é criado no primeiro boot se a tabela estiver vazia.
+
+> **Render + Supabase:** use o **Session pooler** (IPv4). A conexão direta `db.*.supabase.co` é IPv6 e falha no Render. Guia completo: [`docs/setup-externo.md`](docs/setup-externo.md).
 
 ### 2. Backend
 
@@ -238,214 +138,114 @@ export $(grep -v '^#' .env | xargs)
 ./mvnw spring-boot:run
 ```
 
-- API: http://localhost:8080/api/v1  
-- Health: http://localhost:8080/actuator/health  
-- Swagger (dev): http://localhost:8080/swagger-ui.html  
-
-Admin padrão (apenas desenvolvimento):
-
-| Campo | Valor |
-|-------|--------|
-| E-mail | `admin@agendapro.local` |
-| Senha | `Admin@12345` |
-
-Altere `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `JWT_SECRET` antes de qualquer deploy.
+| Recurso | URL |
+|---------|-----|
+| API | http://localhost:8080/api/v1 |
+| Health | http://localhost:8080/actuator/health |
+| Swagger (dev) | http://localhost:8080/swagger-ui.html |
 
 ### 3. Frontend
 
 ```bash
 cd frontend
 cp .env.example .env
+# VITE_API_URL=http://localhost:8080/api/v1
 npm install
 npm run dev
 ```
 
-- App: http://localhost:5173  
-- Login cliente: http://localhost:5173/entrar · Cadastro: http://localhost:5173/cadastro  
-- Login admin: http://localhost:5173/admin/login  
+Abra http://localhost:5173
 
 ---
 
 ## Variáveis de ambiente
 
-### Backend
+### Backend (`backend/.env`)
+
+| Variável | Obrigatória | Descrição |
+|----------|-------------|-----------|
+| `DB_URL` | Sim | JDBC PostgreSQL |
+| `DB_USERNAME` | Sim | Usuário do banco |
+| `DB_PASSWORD` | Sim | Senha do banco |
+| `JWT_SECRET` | Sim (prod) | Segredo HMAC ≥ 32 chars |
+| `ADMIN_EMAIL` | Sim (prod) | E-mail do admin bootstrap |
+| `ADMIN_PASSWORD` | Sim (prod) | Senha do admin bootstrap |
+| `CORS_ALLOWED_ORIGINS` | Recomendada | Origens extras (CSV) |
+| `SPRING_PROFILES_ACTIVE` | Sim (prod) | Use `prod` no Render |
+| `RATE_LIMIT_ENABLED` | Não | Default `true` |
+| `RATE_LIMIT_AUTH_PER_MINUTE` | Não | Default `20` |
+| `RATE_LIMIT_APPOINTMENT_PER_MINUTE` | Não | Default `30` |
+| `APP_TIMEZONE` | Não | Default `America/Sao_Paulo` |
+
+### Frontend (`frontend/.env`)
 
 | Variável | Descrição |
 |----------|-----------|
-| `DB_URL` | JDBC URL do PostgreSQL |
-| `DB_USERNAME` | Usuário do banco |
-| `DB_PASSWORD` | Senha do banco |
-| `CORS_ALLOWED_ORIGINS` | Origens permitidas (ex.: `https://seu-app.vercel.app`) |
-| `JWT_SECRET` | Segredo HMAC (≥ 32 caracteres) |
-| `JWT_ACCESS_MINUTES` | Expiração do access token |
-| `JWT_REFRESH_DAYS` | Expiração do refresh token |
-| `ADMIN_EMAIL` | E-mail do admin inicial |
-| `ADMIN_PASSWORD` | Senha do admin inicial |
-| `SPRING_PROFILES_ACTIVE` | `dev` ou `prod` |
-| `SPRINGDOC_ENABLED` | Habilita Swagger em produção (`false` por padrão no profile `prod`) |
-| `APP_TIMEZONE` | Fuso horário da aplicação |
-
-### Frontend
-
-| Variável | Descrição |
-|----------|-----------|
-| `VITE_API_URL` | Base da API, ex.: `https://api.onrender.com/api/v1` |
+| `VITE_API_URL` | Base da API (ex.: `http://localhost:8080/api/v1`) |
 
 ---
 
-## API
+## API (visão geral)
 
-Prefixo: `/api/v1`
+| Método | Endpoint | Auth | Descrição |
+|--------|----------|------|-----------|
+| `GET` | `/services` | Público | Catálogo de serviços ativos |
+| `GET` | `/appointments/availability?date=` | Público | Horários livres do dia |
+| `POST` | `/appointments` | Público* | Criar agendamento |
+| `GET` | `/appointments/{id}` | Público | Detalhe / confirmação |
+| `POST` | `/auth/login` | Público | Login admin |
+| `POST` | `/auth/refresh` | Público | Renovar access token |
+| `POST` | `/auth/logout` | Público | Revogar refresh token |
+| `POST` | `/client/auth/register` | Público | Cadastro cliente |
+| `POST` | `/client/auth/login` | Público | Login cliente |
+| `GET` | `/client/me` | `CLIENT` | Perfil |
+| `GET` | `/client/appointments` | `CLIENT` | Meus agendamentos |
+| `POST` | `/client/appointments/{id}/cancel` | `CLIENT` | Cancelar o próprio |
+| `GET` | `/admin/appointments` | `ADMIN` | Lista + filtros |
+| `GET` | `/admin/appointments/summary` | `ADMIN` | Resumo por status |
+| `PATCH` | `/admin/appointments/{id}/status` | `ADMIN` | Alterar status |
+| `POST` | `/admin/appointments/{id}/cancel` | `ADMIN` | Cancelar agendamento |
+| `DELETE` | `/admin/appointments/{id}` | `ADMIN` | Excluir |
 
-### Público
+\*Se o cliente estiver autenticado, o agendamento é vinculado à conta.
 
-```text
-GET    /services
-POST   /appointments
-GET    /appointments/{id}
-GET    /appointments/availability?date=YYYY-MM-DD
-POST   /auth/login                 # admin
-POST   /auth/refresh
-POST   /auth/logout
-POST   /client/auth/register
-POST   /client/auth/login
-```
-
-### Cliente autenticado (Bearer JWT `CLIENT`)
-
-```text
-GET    /client/me
-GET    /client/appointments
-POST   /client/appointments/{id}/cancel
-```
-
-### Administrativo (Bearer JWT `ADMIN`)
-
-```text
-GET    /admin/appointments?date=&q=&page=&size=
-GET    /admin/appointments/summary?date=
-PATCH  /admin/appointments/{id}/status
-POST   /admin/appointments/{id}/cancel
-DELETE /admin/appointments/{id}
-```
-
-Erros seguem o contrato `ErrorResponseDTO` (`timestamp`, `status`, `code`, `message`, `path`, `fieldErrors`).
+Base path: `/api/v1`
 
 ---
 
-## Swagger
+## Segurança
 
-Em desenvolvimento, acesse:
-
-http://localhost:8080/swagger-ui.html
-
-No profile `prod`, a documentação fica desabilitada por padrão (`SPRINGDOC_ENABLED=false`).
-
----
-
-## Fluxo da aplicação
-
-1. Visitante abre a home, escolhe serviço, data e horário livre (sem login).
-2. Backend valida regras (passado, serviço ativo, conflito) e persiste com índice único parcial.
-3. Confirmação em `/confirmacao/:id`.
-4. Opcional: cliente cria conta (`/cadastro`), entra (`/entrar`) e gerencia agendamentos em `/minha-conta`.
-5. Admin autentica em `/admin/login` (JWT `ADMIN`), lista/busca/resumo, altera status ou exclui.
-6. Refresh renova a sessão; logout invalida o refresh token no servidor.
+- **Bean Validation** nos DTOs + regras de negócio na service layer
+- **Spring Security** com JWT e autorização por role
+- **SQL Injection** mitigado via Spring Data JPA / prepared statements
+- **XSS** mitigado pelo React (escape de saída) + validação de entrada
+- **CSRF** desnecessário em API stateless com Bearer token
+- **CORS** com origin patterns explícitos (sem `*` liberado)
+- **Rate limiting** por IP nos endpoints de auth e agendamento
+- **Swagger desligado** no perfil `prod`
+- Headers `X-Content-Type-Options` e `X-Frame-Options: DENY`
 
 ---
 
 ## Deploy
 
-Ordem recomendada: **push no GitHub → Render (API) → Vercel (SPA) → CORS → smoke test**.
+### Backend (Render)
 
-Passo a passo detalhado: [`docs/setup-externo.md`](docs/setup-externo.md).
+1. Conecte o repositório GitHub
+2. Use o `backend/Dockerfile` (ou `render.yaml`)
+3. Configure as variáveis de ambiente (incluindo `SPRING_PROFILES_ACTIVE=prod`)
+4. Confirme health em `/actuator/health`
 
 ### Frontend (Vercel)
 
-1. Importe o repositório; **Root Directory:** `frontend`.
+1. Root directory: `frontend`
 2. Build: `npm run build` · Output: `dist`
-3. Env: `VITE_API_URL=https://<seu-backend>/api/v1`
-4. `vercel.json` já configura SPA rewrite.
+3. `VITE_API_URL` = URL pública do backend + `/api/v1`
+4. SPA rewrite já está em `vercel.json`
 
-### Backend (Render)
+Ordem recomendada: **GitHub → Supabase → Render → Vercel** (e ajuste `CORS_ALLOWED_ORIGINS` se necessário).
 
-1. **Language = Docker** (Render não oferece Java nativo). Use `backend/Dockerfile`.
-2. Root Directory: `backend` · Dockerfile Path: `Dockerfile` (não `backend/Dockerfile` — isso duplica o path)
-3. Health check: `/actuator/health`
-4. Defina `DB_*`, `CORS_ALLOWED_ORIGINS`, `JWT_SECRET`, `ADMIN_*`, `SPRING_PROFILES_ACTIVE=prod`.
-5. A app escuta `PORT` (Render injeta automaticamente).
-
-### Banco (Supabase)
-
-1. Crie o projeto PostgreSQL e use JDBC com `sslmode=require`.
-2. Na primeira subida, o Flyway cria/baselina schema, seed e `admin_users`.
-3. O bootstrap cria o admin se a tabela estiver vazia (em `prod`, credenciais padrão de desenvolvimento são bloqueadas).
-
-### Antes de enviar a um recrutador
-
-1. Push do código completo (backend + frontend + docs)
-2. URLs de demo preenchidas na seção [Demo](#demo)
-3. Smoke test do checklist em `docs/setup-externo.md`
-4. Screenshots em `docs/screenshots/`
-5. Confirmar que `.env` reais **não** estão no git
-
----
-
-## Decisões arquiteturais
-
-Resumo das decisões principais:
-
-| Tema | Escolha |
-|------|---------|
-| Estilo | Camadas simples (sem Clean Architecture completa) |
-| Persistência | Flyway + `ddl-auto=validate` |
-| API | REST versionada `/api/v1` + DTOs |
-| Concorrência | Validação na service + índice único parcial no Postgres |
-| Segurança | JWT multi-papel (`ADMIN` / `CLIENT`); booking público permanece |
-| Performance | Paginação, índices, LAZY, `open-in-view=false` |
-
-Detalhes e trade-offs: [`docs/architecture-decisions.md`](docs/architecture-decisions.md).
-
----
-
-## Trade-offs
-
-- Conta de cliente é **opcional** (híbrido): o desafio mínimo continua atendido sem login; a área autenticada demonstra JWT multi-papel.
-- Duração do serviço é persistida, mas a grade de horários do MVP usa slots fixos de 30 minutos.
-- Refresh tokens invalidados ficam em denylist em memória (adequado ao MVP single-instance; evoluir para persistência/Redis em escala).
-- Backend no Render via Docker (sem runtime Java nativo na plataforma).
-
----
-
-## Roadmap
-
-- [ ] Reagendamento e bloqueio de feriados
-- [ ] Catálogo administrativo de serviços
-- [ ] Profissionais / recursos de atendimento
-- [ ] Notificações (e-mail / WhatsApp)
-- [ ] Testcontainers + pipeline CI
-- [ ] Soft delete e auditoria
-- [ ] Rate limiting e rotação de JWT com store distribuída
-
----
-
-## Screenshots
-
-![Home](docs/screenshots/01-home.png)
-
-![Slots](docs/screenshots/02-slots.png)
-
-![Confirmação](docs/screenshots/03-confirmacao.png)
-
-![Login admin](docs/screenshots/04-login-admin.png)
-
-![Admin](docs/screenshots/05-admin.png)
-
-![Entrar cliente](docs/screenshots/06-entrar-cliente.png)
-
-![Cadastro](docs/screenshots/07-cadastro.png)
-
-![Minha conta](docs/screenshots/08-minha-conta.png)
+Passo a passo detalhado: [`docs/setup-externo.md`](docs/setup-externo.md).
 
 ---
 
@@ -453,16 +253,31 @@ Detalhes e trade-offs: [`docs/architecture-decisions.md`](docs/architecture-deci
 
 ```bash
 # Backend
-cd backend && ./mvnw test && ./mvnw verify
+cd backend && ./mvnw test
 
 # Frontend
-cd frontend && npm run lint && npm run type-check && npm run build
+cd frontend && npm run ci   # lint + type-check + build
 ```
+
+---
+
+## Screenshots
+
+| Tela | Preview |
+|------|---------|
+| Home / agendamento | ![Home](docs/screenshots/01-home.png) |
+| Slots disponíveis | ![Slots](docs/screenshots/02-slots.png) |
+| Confirmação | ![Confirmação](docs/screenshots/03-confirmacao.png) |
+| Login admin | ![Login admin](docs/screenshots/04-login-admin.png) |
+| Painel admin | ![Admin](docs/screenshots/05-admin.png) |
+| Login cliente | ![Entrar](docs/screenshots/06-entrar-cliente.png) |
+| Cadastro | ![Cadastro](docs/screenshots/07-cadastro.png) |
+| Minha conta | ![Minha conta](docs/screenshots/08-minha-conta.png) |
 
 ---
 
 ## Autor
 
-Desenvolvido por **Jaelson Santos** para o processo seletivo DevClub.
+**Jaelson Santos** — desafio técnico DevClub.
 
-Uso de IA como apoio à implementação e revisão, com decisões técnicas, testes e validação sob responsabilidade do autor.
+Notas de estudo sobre a stack: [`docs/Estudo/README.md`](docs/Estudo/README.md).

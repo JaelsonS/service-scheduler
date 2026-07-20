@@ -1,6 +1,6 @@
-# Estudo — Service Scheduler
+# Estudo — Service Scheduler (AgendaPro)
 
-Material de estudo baseado na arquitetura real deste projeto. Serve para revisão de entrevista (vaga júnior) e para explicar o “porquê” de cada camada.
+Material de estudo baseado na arquitetura **real** deste projeto. Serve para revisão de entrevista (vaga júnior/pleno) e para explicar o “porquê” de cada camada.
 
 **Não é documentação de produto incompleta** — o MVP está em `/backend` e `/frontend`. Estes arquivos são apoio de aprendizado.
 
@@ -24,15 +24,35 @@ Cada arquivo responde três perguntas:
 | 08 | Spring Security | [08-spring-security.md](08-spring-security.md) |
 | 09 | JWT | [09-jwt.md](09-jwt.md) |
 | 10 | React | [10-react.md](10-react.md) |
+| 11 | Rate limiting e CORS | [11-rate-limit-cors.md](11-rate-limit-cors.md) |
 
 ## Fluxo mental do backend
 
 ```text
 HTTP Request
+    → RateLimitFilter (proteção por IP)
+    → JwtAuthenticationFilter (Bearer → SecurityContext)
     → Controller (entrada/saída HTTP)
     → Service (regra de negócio)
     → Repository (acesso a dados)
-    → Entity / PostgreSQL
+    → Entity / PostgreSQL (Flyway)
 ```
 
 A API nunca devolve `Entity` diretamente: a conversão para `DTO` acontece nos mappers.
+
+Mensagens de erro da API estão em **português** (Bean Validation, exceptions e `GlobalExceptionHandler`) para bater com a UX do frontend.
+
+## Papéis (roles)
+
+| Role | Quem | O que faz |
+|------|------|-----------|
+| — (anônimo) | Cliente sem conta | Agenda e consulta disponibilidade |
+| `CLIENT` | Cliente autenticado | Vê/cancela os próprios agendamentos; agenda vincula à conta |
+| `ADMIN` | Administrador | Lista, filtra, altera status, cancela e exclui |
+
+## Leitura recomendada
+
+1. Controllers → Services → Repository → Entity  
+2. DTO + JPA + Flyway (contrato vs persistência)  
+3. Security + JWT + Rate limit  
+4. React (como a SPA consome a API)

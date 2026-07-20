@@ -17,6 +17,11 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Emite e valida JWT (access + refresh).
+ * A denylist de refresh fica em memória — ok numa instância do Render;
+ * se escalar horizontalmente, isso precisa ir pra Redis/banco.
+ */
 @Service
 public class JwtService {
 
@@ -50,7 +55,7 @@ public class JwtService {
 
     public Claims parseRefreshToken(String token) {
         if (revokedRefreshTokens.contains(token)) {
-            throw new JwtException("Refresh token has been revoked");
+            throw new JwtException("Token de renovação já foi invalidado");
         }
         return parseToken(token, REFRESH_TOKEN_TYPE);
     }
@@ -58,12 +63,12 @@ public class JwtService {
     public UserRole extractRole(Claims claims) {
         String role = claims.get(ROLE_CLAIM, String.class);
         if (role == null || role.isBlank()) {
-            throw new JwtException("Missing role claim");
+            throw new JwtException("Token sem perfil de acesso");
         }
         try {
             return UserRole.valueOf(role);
         } catch (IllegalArgumentException exception) {
-            throw new JwtException("Invalid role claim");
+            throw new JwtException("Perfil de acesso inválido no token");
         }
     }
 
@@ -106,7 +111,7 @@ public class JwtService {
                 .getPayload();
 
         if (!expectedType.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
-            throw new JwtException("Unexpected token type");
+            throw new JwtException("Tipo de token inesperado");
         }
 
         return claims;

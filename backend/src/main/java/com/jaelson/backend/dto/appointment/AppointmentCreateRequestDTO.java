@@ -10,26 +10,26 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 public record AppointmentCreateRequestDTO(
-        @NotBlank(message = "Customer name is required")
-        @Size(max = 120, message = "Customer name must have at most 120 characters")
+        @NotBlank(message = "Informe o nome")
+        @Size(max = 120, message = "Nome deve ter no máximo 120 caracteres")
         String customerName,
 
-        @NotBlank(message = "Customer phone is required")
-        @Size(max = 30, message = "Customer phone must have at most 30 characters")
+        @NotBlank(message = "Informe o telefone")
+        @Size(max = 30, message = "Telefone deve ter no máximo 30 caracteres")
         @Pattern(
                 regexp = "^[0-9()+.\\- ]{10,30}$",
-                message = "Customer phone has an invalid format"
+                message = "Telefone em formato inválido"
         )
         String customerPhone,
 
-        @NotNull(message = "Appointment date is required")
+        @NotNull(message = "Selecione a data")
         LocalDate appointmentDate,
 
-        @NotNull(message = "Appointment time is required")
+        @NotNull(message = "Selecione o horário")
         LocalTime appointmentTime,
 
-        @NotNull(message = "Service is required")
-        @Positive(message = "Service must be a positive identifier")
+        @NotNull(message = "Selecione o serviço")
+        @Positive(message = "Serviço inválido")
         Long serviceId
 ) {
 }

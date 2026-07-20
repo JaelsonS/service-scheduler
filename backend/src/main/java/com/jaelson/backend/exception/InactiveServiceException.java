@@ -8,7 +8,7 @@ public class InactiveServiceException extends BusinessException {
         super(
                 HttpStatus.BAD_REQUEST,
                 "INACTIVE_SERVICE",
-                "Service with id " + serviceId + " is inactive and cannot be booked"
+                "Este serviço não está disponível para agendamento"
         );
     }
 }

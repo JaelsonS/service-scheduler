@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /minha-conta
+Disallow: /entrar
+Disallow: /cadastro
+
+Sitemap: https://service-scheduler-puce.vercel.app/sitemap.xml

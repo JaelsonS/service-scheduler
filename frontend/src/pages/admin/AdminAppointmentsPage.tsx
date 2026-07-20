@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { Appointment, AppointmentStatus } from '../../types/appointment'
@@ -86,6 +87,12 @@ export function AdminAppointmentsPage() {
 
   return (
     <section className="space-y-6">
+      <SeoHead
+        title="Painel administrativo"
+        description="Gerencie agendamentos, status e filtros da agenda."
+        path="/admin"
+        noIndex
+      />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-900">Agendamentos</h1>

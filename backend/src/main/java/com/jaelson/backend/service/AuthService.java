@@ -16,6 +16,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 
+/**
+ * Login do admin + renovação/logout de tokens.
+ * O AuthenticationManager valida a senha (BCrypt); daí em diante só emito JWT.
+ */
 @Service
 public class AuthService {
 

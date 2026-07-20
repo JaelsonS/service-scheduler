@@ -7,7 +7,7 @@ const refreshTokenKey = 'agendapro.refreshToken'
 const emailKey = 'agendapro.email'
 const roleKey = 'agendapro.role'
 
-/** Render free tier cold starts can take 30–60s. */
+/** No plano free do Render, a API pode demorar 30–60s para acordar. */
 const DEFAULT_TIMEOUT_MS = 60_000
 
 export const apiClient = axios.create({
@@ -132,7 +132,7 @@ function isRetryableNetworkError(error: unknown): boolean {
 }
 
 /**
- * Retries transient network failures (Render cold start / brief outages).
+ * Repito GET em falhas de rede transitórias (cold start do Render / queda breve).
  */
 export async function getWithRetry<T>(
   url: string,
@@ -157,7 +157,7 @@ export async function getWithRetry<T>(
   throw lastError
 }
 
-export function getApiErrorMessage(error: unknown, fallback = 'Ocorreu um erro inesperado'): string {
+export function getApiErrorMessage(error: unknown, fallback = 'Algo deu errado. Tente de novo'): string {
   if (!axios.isAxiosError(error)) {
     return fallback
   }

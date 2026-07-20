@@ -4,7 +4,7 @@ import { ToastContext } from '../components/ui/toast-context'
 export function useToast() {
   const context = useContext(ToastContext)
   if (!context) {
-    throw new Error('useToast must be used within ToastProvider')
+    throw new Error('useToast deve ser usado dentro de ToastProvider')
   }
   return context
 }

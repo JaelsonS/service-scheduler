@@ -6,21 +6,21 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record ClientRegisterRequestDTO(
-        @NotBlank(message = "Name is required")
-        @Size(min = 2, max = 120, message = "Name must be between 2 and 120 characters")
+        @NotBlank(message = "Informe o nome")
+        @Size(min = 2, max = 120, message = "Nome deve ter entre 2 e 120 caracteres")
         String fullName,
 
-        @NotBlank(message = "Phone is required")
-        @Pattern(regexp = "^[0-9()+.\\- ]{10,30}$", message = "Phone is invalid")
+        @NotBlank(message = "Informe o telefone")
+        @Pattern(regexp = "^[0-9()+.\\- ]{10,30}$", message = "Telefone inválido")
         String phone,
 
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
-        @Size(max = 255, message = "Email is too long")
+        @NotBlank(message = "Informe o e-mail")
+        @Email(message = "E-mail inválido")
+        @Size(max = 255, message = "E-mail muito longo")
         String email,
 
-        @NotBlank(message = "Password is required")
-        @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
+        @NotBlank(message = "Informe a senha")
+        @Size(min = 8, max = 72, message = "Senha deve ter entre 8 e 72 caracteres")
         String password
 ) {
 }

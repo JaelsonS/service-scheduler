@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ErrorState } from '../../components/ui/ErrorState'
+import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import type { Appointment } from '../../types/appointment'
@@ -53,6 +54,12 @@ export function MyAppointmentsPage() {
 
   return (
     <section className="space-y-6">
+      <SeoHead
+        title="Minha conta"
+        description="Veja e cancele seus agendamentos no AgendaPro."
+        path="/minha-conta"
+        noIndex
+      />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-ink-900">Minha conta</h1>

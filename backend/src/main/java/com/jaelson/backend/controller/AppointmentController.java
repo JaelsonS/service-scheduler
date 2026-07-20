@@ -42,7 +42,7 @@ public class AppointmentController {
     @GetMapping("/availability")
     public ResponseEntity<AvailabilityResponseDTO> getAvailability(
             @RequestParam
-            @NotNull(message = "Date is required")
+            @NotNull(message = "Informe a data")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date
     ) {

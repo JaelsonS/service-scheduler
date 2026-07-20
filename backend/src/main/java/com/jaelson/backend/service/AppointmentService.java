@@ -55,6 +55,12 @@ public class AppointmentService {
         this.clock = clock;
     }
 
+    /**
+     * Fluxo público de agendamento. Ordem importa:
+     * 1) serviço ativo, 2) horário válido, 3) slot livre.
+     * Se o cliente estiver autenticado, amarro o appointment ao user —
+     * mas o booking continua aberto sem login (requisito do desafio).
+     */
     @Transactional
     public AppointmentResponseDTO create(AppointmentCreateRequestDTO request) {
         Service service = serviceCatalogService.findActiveServiceOrThrow(request.serviceId());
@@ -73,10 +79,16 @@ public class AppointmentService {
         return AppointmentMapper.toResponse(findAppointmentOrThrow(id));
     }
 
+    /**
+     * Disponibilidade do dia: gero a grade de slots de negócio e subtraio
+     * os ocupados (qualquer status != CANCELADO). Passado fica de fora.
+     * A unicidade no banco (índice parcial) é a rede de segurança se duas
+     * requisições corridas passarem daqui ao mesmo tempo.
+     */
     @Transactional(readOnly = true)
     public AvailabilityResponseDTO getAvailability(LocalDate date) {
         if (date.isBefore(LocalDate.now(clock))) {
-            throw new InvalidAppointmentTimeException("Cannot consult availability for a past date");
+            throw new InvalidAppointmentTimeException("Não é possível consultar disponibilidade de uma data passada");
         }
 
         List<LocalTime> occupiedTimes = appointmentRepository.findOccupiedTimesByDate(
@@ -193,22 +205,27 @@ public class AppointmentService {
         LocalDate today = now.toLocalDate();
 
         if (date.isBefore(today)) {
-            throw new InvalidAppointmentTimeException("Appointment date cannot be in the past");
+            throw new InvalidAppointmentTimeException("A data do agendamento não pode ser no passado");
         }
 
         if (!AvailabilitySlotGenerator.isWithinBusinessHours(time)) {
             throw new InvalidAppointmentTimeException(
-                    "Appointment time must be within business hours on a valid slot"
+                    "Horário fora do expediente ou inválido"
             );
         }
 
         if (date.isEqual(today) && time.isBefore(now.toLocalTime())) {
             throw new InvalidAppointmentTimeException(
-                    "Appointment time cannot be in the past for the current day"
+                    "Este horário já passou. Escolha outro"
             );
         }
     }
 
+    /**
+     * Checagem otimista de conflito. A garantia real vem do índice único
+     * parcial no PostgreSQL (status <> CANCELADO) — se duas requests
+     * passarem juntas, a segunda cai em DataIntegrityViolation → 409.
+     */
     private void ensureSlotIsFree(LocalDate date, LocalTime time) {
         boolean occupied = appointmentRepository.existsByAppointmentDateAndAppointmentTimeAndStatusNot(
                 date,
@@ -218,7 +235,7 @@ public class AppointmentService {
 
         if (occupied) {
             throw new AppointmentConflictException(
-                    "There is already an active appointment at the selected date and time"
+                    "Já existe um agendamento ativo neste horário"
             );
         }
     }

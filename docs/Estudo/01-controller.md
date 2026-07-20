@@ -13,7 +13,7 @@ Em uma frase: o controller fala a linguagem da web; ele não deve concentrar reg
 - Separar protocolo HTTP da lógica de domínio (SRP).
 - Padronizar contratos REST (`/api/v1`, DTOs, `ResponseEntity`).
 - Facilitar testes HTTP (`@WebMvcTest`) sem precisar do banco.
-- Deixar claro o que é público e o que é administrativo.
+- Deixar claro o que é público, o que é cliente e o que é administrativo.
 
 Sem controllers, a regra de negócio ficaria misturada com detalhes de servlet, JSON e status codes.
 
@@ -23,16 +23,18 @@ Organizamos controllers por fronteira:
 
 | Controller | Prefixo | Responsabilidade |
 |------------|---------|------------------|
-| `AppointmentController` | `/api/v1/appointments` | Agendamento e disponibilidade do cliente |
-| `ServiceController` | `/api/v1/services` | Listagem de serviços ativos |
-| `AuthController` | `/api/v1/auth` | Login, refresh e logout |
-| `AdminAppointmentController` | `/api/v1/admin/appointments` | Gestão administrativa |
+| `AppointmentController` | `/api/v1/appointments` | Agendamento público e disponibilidade |
+| `ServiceController` | `/api/v1/services` | Catálogo de serviços ativos |
+| `AuthController` | `/api/v1/auth` | Login, refresh e logout (admin; refresh compartilhado) |
+| `ClientAuthController` | `/api/v1/client/auth` | Cadastro e login do cliente |
+| `ClientAppointmentController` | `/api/v1/client/appointments` | Listar e cancelar os próprios (`POST .../cancel`) |
+| `AdminAppointmentController` | `/api/v1/admin/appointments` | Lista, summary, status, cancel e delete |
 
 Padrões adotados:
 
 - Recebe e devolve **apenas DTOs**.
-- Usa `@Valid` / Bean Validation na entrada.
-- Delega tudo para `AppointmentService`, `ServiceCatalogService` ou `AuthService`.
+- Usa `@Valid` / Bean Validation na entrada (mensagens em português).
+- Delega para `AppointmentService`, `ServiceCatalogService`, `AuthService` ou `ClientAuthService`.
 - Retorna `ResponseEntity` com status adequado (`201 Created`, `204 No Content`, `200 OK`).
 
 Exemplo mental do fluxo de criação:
@@ -44,4 +46,4 @@ POST /api/v1/appointments
   → ResponseEntity.status(CREATED).body(AppointmentResponseDTO)
 ```
 
-Erros de validação e negócio não são tratados manualmente em cada método: o `GlobalExceptionHandler` centraliza as respostas de erro.
+Erros de validação e negócio não são tratados manualmente em cada método: o `GlobalExceptionHandler` centraliza as respostas de erro em `ErrorResponseDTO`.

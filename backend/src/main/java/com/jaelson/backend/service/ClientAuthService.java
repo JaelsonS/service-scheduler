@@ -12,6 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Cadastro/login do cliente (role CLIENT).
+ * E-mail fica normalizado em minúsculas pra evitar duplicata por capitalização.
+ */
 @Service
 public class ClientAuthService {
 

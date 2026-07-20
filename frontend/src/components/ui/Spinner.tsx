@@ -23,7 +23,7 @@ export function Spinner({
   )
 }
 
-/** Shows a calmer second message after a few seconds (Render cold start). */
+/** Depois de alguns segundos, mostro um aviso mais calmo (cold start do Render). */
 export function BootAwareSpinner({
   label = 'Carregando serviços...',
 }: {

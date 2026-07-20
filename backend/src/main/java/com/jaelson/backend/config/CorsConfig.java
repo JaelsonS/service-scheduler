@@ -17,11 +17,11 @@ import java.util.Set;
 public class CorsConfig {
 
     /**
-     * "*" via allowedOriginPatterns works with credentials in Spring Framework 6+/7
-     * and reflects the request Origin. Extra patterns from env are still merged.
+     * Não uso "*" por padrão de propósito: em produção o frontend mora na Vercel
+     * e o local em localhost. Qualquer origem extra entra via CORS_ALLOWED_ORIGINS.
+     * allowedOriginPatterns + credentials funciona no Spring 6+/7 refletindo o Origin.
      */
     private static final List<String> DEFAULT_ORIGIN_PATTERNS = List.of(
-            "*",
             "http://localhost:*",
             "http://127.0.0.1:*",
             "https://*.vercel.app"

@@ -23,13 +23,16 @@ Entidades do MVP:
 | Entity | Tabela | Observação |
 |--------|--------|------------|
 | `Service` | `services` | Catálogo de serviços (nome, duração, ativo) |
-| `Appointment` | `appointments` | Agendamento do cliente |
+| `Appointment` | `appointments` | Agendamento (público ou vinculado a cliente) |
 | `AdminUser` | `admin_users` | Credenciais administrativas |
+| `ClientUser` | `client_users` | Conta opcional do cliente (migration V4) |
 
 Pontos de modelagem:
 
 - `Appointment.service` é `@ManyToOne(fetch = LAZY)` — carrega o serviço sob demanda.
+- `Appointment.clientUser` é `@ManyToOne(fetch = LAZY)` opcional (`nullable`) — agendamento anônimo continua válido.
 - Status é o enum `AppointmentStatus` mapeado como `STRING`.
+- Roles em JWT usam o enum `UserRole` (`ADMIN`, `CLIENT`).
 - `createdAt` / `updatedAt` são preenchidos em `@PrePersist` / `@PreUpdate`.
 - A entity `Service` mantém o nome do domínio (ADR-002); o stereotype Spring usa FQCN `@org.springframework.stereotype.Service` para evitar conflito de nome.
 

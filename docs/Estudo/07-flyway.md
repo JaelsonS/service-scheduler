@@ -24,6 +24,7 @@ backend/src/main/resources/db/migration/
   V1__create_initial_schema.sql
   V2__seed_services.sql
   V3__create_admin_users.sql
+  V4__create_client_users.sql
 ```
 
 | Migration | Conteúdo |
@@ -31,6 +32,7 @@ backend/src/main/resources/db/migration/
 | V1 | Tabelas `services` e `appointments`, FKs, checks, índices e índice único parcial de horário ativo |
 | V2 | Seed de serviços para o cliente conseguir agendar |
 | V3 | Tabela `admin_users` para autenticação administrativa |
+| V4 | Tabela `client_users` + coluna `client_user_id` em `appointments` (nullable) |
 
 Configuração:
 
@@ -42,6 +44,8 @@ spring.flyway.baseline-version=3
 ```
 
 O `baseline` existe para ambientes em que o schema já foi provisionado (ex.: Supabase) sem histórico Flyway local — evita tentar recriar tabelas existentes.
+
+**Atenção:** nunca edite uma migration já aplicada em produção (checksum muda e o Flyway quebra). Nova mudança = nova migration `V5__...`.
 
 Fluxo na prática:
 

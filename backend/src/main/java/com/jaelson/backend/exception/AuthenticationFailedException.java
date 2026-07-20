@@ -5,6 +5,6 @@ import org.springframework.http.HttpStatus;
 public class AuthenticationFailedException extends BusinessException {
 
     public AuthenticationFailedException() {
-        super(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "Invalid email or password");
+        super(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "E-mail ou senha inválidos");
     }
 }

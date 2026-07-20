@@ -26,6 +26,7 @@ const bookingSchema = z.object({
     .string()
     .min(2, 'Informe o nome completo')
     .max(120, 'Nome muito longo'),
+  // Mesmo padrão do backend (Bean Validation) — evita rejeição só depois do submit.
   customerPhone: z
     .string()
     .regex(/^[0-9()+.\- ]{10,30}$/, 'Telefone inválido'),
@@ -76,7 +77,7 @@ export function BookingForm() {
         setValue('customerPhone', profile.phone)
       })
       .catch(() => {
-        // Keep form empty if profile cannot be loaded.
+        // Se o perfil não carregar, deixo o formulário em branco mesmo.
       })
 
     return () => {

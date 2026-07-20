@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '../api/client'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { ErrorState } from '../components/ui/ErrorState'
+import { SeoHead } from '../components/SeoHead'
 import { Spinner } from '../components/ui/Spinner'
 import { StatusBadge } from '../components/ui/StatusBadge'
 import type { Appointment } from '../types/appointment'
@@ -78,6 +79,12 @@ export function ConfirmationPage() {
 
   return (
     <section className="mx-auto max-w-xl space-y-6">
+      <SeoHead
+        title="Agendamento confirmado"
+        description="Seu horário foi reservado com sucesso no AgendaPro."
+        path={`/confirmacao/${appointment.id}`}
+        noIndex
+      />
       <Card className="text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-700">
           <CheckCircle2 className="h-7 w-7" />

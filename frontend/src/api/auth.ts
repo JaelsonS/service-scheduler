@@ -38,11 +38,6 @@ export async function registerClient(payload: ClientRegisterPayload): Promise<Au
   return data
 }
 
-export async function refresh(refreshToken: string): Promise<AuthTokenResponse> {
-  const { data } = await apiClient.post<AuthTokenResponse>('/auth/refresh', { refreshToken })
-  return data
-}
-
 export async function logout(refreshToken?: string): Promise<void> {
   await apiClient.post('/auth/logout', refreshToken ? { refreshToken } : { refreshToken: '' })
 }

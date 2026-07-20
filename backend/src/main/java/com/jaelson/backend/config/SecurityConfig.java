@@ -17,6 +17,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * API 100% stateless com JWT.
+ *
+ * CSRF fica desligado de propósito: não há cookie de sessão. O token vai no
+ * header Authorization, então o vetor clássico de CSRF em form POST não se aplica.
+ * Separação clara: público (catálogo + agendar), CLIENT e ADMIN.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -31,6 +38,10 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
+                .headers(headers -> headers
+                        .contentTypeOptions(Customizer.withDefaults())
+                        .frameOptions(frame -> frame.deny())
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)

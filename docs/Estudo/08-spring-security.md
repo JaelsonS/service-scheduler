@@ -8,12 +8,12 @@ Ele intercepta requisições HTTP, decide quem pode acessar cada rota e integra 
 
 ## Por que usamos?
 
-- Proteger a área administrativa sem reinventar filtros e criptografia.
-- Separar claramente rotas públicas e privadas.
-- Usar BCrypt para senha do admin.
-- Preparar a API para evolução (roles, rate limit, auditoria).
+- Proteger área administrativa e área do cliente autenticado sem reinventar filtros e criptografia.
+- Separar claramente rotas públicas, `CLIENT` e `ADMIN`.
+- Usar BCrypt para senhas.
+- Manter API stateless com JWT (adequada a SPA + Render/Vercel).
 
-No MVP do desafio, clientes agendam sem login. Admin precisa de proteção real antes do deploy.
+No desafio, o agendamento público continua sem login. Conta de cliente é opcional; admin exige proteção real antes do deploy.
 
 ## Como está sendo usado neste projeto?
 
@@ -25,20 +25,25 @@ Política adotada:
 |------|--------|
 | `/api/v1/services/**` | Público |
 | `/api/v1/appointments/**` | Público |
-| `/api/v1/auth/**` | Público |
+| `/api/v1/auth/**` | Público (login admin / refresh / logout) |
+| `/api/v1/client/auth/**` | Público (cadastro e login cliente) |
 | `/actuator/health` | Público |
-| Swagger (quando habilitado) | Público |
-| `/api/v1/admin/**` | Autenticado com role `ADMIN` |
-| Qualquer outra | Negado |
+| Swagger (quando habilitado em dev) | Público |
+| `/api/v1/admin/**` | Role `ADMIN` |
+| `/api/v1/client/**` | Role `CLIENT` |
+| Qualquer outra | Negado (`denyAll`) |
 
 Características:
 
 - sessão **STATELESS** (sem HttpSession);
-- CSRF desabilitado (API JWT);
-- CORS via `CorsConfigurationSource`;
+- CSRF desabilitado (API JWT com Bearer — não há cookie de sessão);
+- CORS via `CorsConfigurationSource` (localhost + `*.vercel.app` + env);
+- headers de segurança (`X-Frame-Options: DENY`, content-type options);
 - `PasswordEncoder` = `BCryptPasswordEncoder`;
-- `AdminUserDetailsService` carrega o usuário admin do banco;
-- `AdminUserBootstrap` cria o primeiro admin a partir de variáveis de ambiente se a tabela estiver vazia;
-- erros 401/403 retornam o mesmo formato `ErrorResponseDTO` (`RestAuthenticationEntryPoint`, `RestAccessDeniedHandler`).
+- `AdminUserDetailsService` carrega o admin do banco;
+- `AdminUserBootstrap` cria o primeiro admin a partir de env; em `prod` bloqueia credenciais padrão;
+- erros 401/403 retornam `ErrorResponseDTO` em português (`RestAuthenticationEntryPoint`, `RestAccessDeniedHandler`).
 
 O filtro JWT entra na cadeia **antes** do filtro de username/password, convertendo o Bearer token em autenticação no contexto de segurança.
+
+Rate limiting roda como filtro servlet separado (ver [11-rate-limit-cors.md](11-rate-limit-cors.md)).

@@ -6,12 +6,10 @@ Guia para ligar **Supabase + local + Render + Vercel**.
 
 | Camada | Serviço | Status |
 |--------|---------|--------|
-| Banco | Supabase (PostgreSQL) | Pronto — schema/seed/admin via Flyway + bootstrap |
-| Backend | Local OK → **próximo: Render** | Credenciais locais configuradas |
-| Frontend | Local OK → **próximo: Vercel** | `VITE_API_URL` apontando para API local |
-| GitHub | Código completo precisa estar no remoto | Obrigatório antes do deploy |
-
-Pré-requisito absoluto: **commit + push** do MVP completo (backend + frontend). Sem isso, Render/Vercel não enxergam a aplicação.
+| Banco | Supabase (PostgreSQL) | Pronto — schema/seed via Flyway + bootstrap de admin |
+| Backend | Render (Docker) | Em produção — https://service-scheduler-l3g7.onrender.com |
+| Frontend | Vercel | Em produção — https://service-scheduler-puce.vercel.app |
+| GitHub | Repositório público | https://github.com/JaelsonS/service-scheduler |
 
 ---
 
@@ -116,7 +114,7 @@ Credenciais **somente desenvolvimento** (bootstrap):
 |-----|--------|
 | `SPRING_PROFILES_ACTIVE` | `prod` |
 | `DB_URL` | JDBC do Supabase com `?sslmode=require` |
-| `DB_USERNAME` | `postgres` (ou o user do projeto) |
+| `DB_USERNAME` | `postgres.<PROJECT_REF>` (Session pooler) |
 | `DB_PASSWORD` | senha do Supabase |
 | `CORS_ALLOWED_ORIGINS` | URL da Vercel (ex.: `https://seu-app.vercel.app`) |
 | `JWT_SECRET` | string aleatória nova (≥ 32 chars) — **não** reutilize a de dev |

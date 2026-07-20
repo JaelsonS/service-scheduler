@@ -1,41 +1,41 @@
-# Decisoes Arquiteturais
+# Decisões Arquiteturais
 
 ## Contexto do projeto
 
-O Service Scheduler e uma aplicacao full stack de agendamento de servicos desenvolvida para um desafio tecnico do DevClub. O prazo de desenvolvimento e de sete dias e os requisitos principais sao:
+O Service Scheduler é uma aplicação full stack de agendamento de serviços desenvolvida para um desafio técnico do DevClub. O prazo de desenvolvimento é de sete dias e os requisitos principais são:
 
-- permitir que um cliente agende um servico;
-- consultar horarios disponiveis;
-- impedir a reserva de horarios ocupados;
+- permitir que um cliente agende um serviço;
+- consultar horários disponíveis;
+- impedir a reserva de horários ocupados;
 - permitir que um administrador consulte e gerencie agendamentos;
 - persistir os dados;
 - entregar uma interface responsiva;
-- demonstrar organizacao, boas praticas e qualidade de codigo.
+- demonstrar organização, boas práticas e qualidade de código.
 
-O objetivo arquitetural do projeto e entregar um MVP confiavel, claro e manutenivel, sem transformar um desafio de escopo definido em um sistema maior do que o necessario.
+O objetivo arquitetural do projeto é entregar um MVP confiável, claro e manutenível, sem transformar um desafio de escopo definido em um sistema maior do que o necessário.
 
-## Como interpretar estas decisoes
+## Como interpretar estas decisões
 
-Cada decisao registra o contexto que a motivou, as alternativas avaliadas, a escolha feita e os impactos esperados. Funcionalidades nao implementadas nao representam esquecimento: foram avaliadas e conscientemente adiadas para preservar a qualidade da entrega principal.
+Cada decisão registra o contexto que a motivou, as alternativas avaliadas, a escolha feita e os impactos esperados. Funcionalidades não implementadas não representam esquecimento: foram avaliadas e conscientemente adiadas para preservar a qualidade da entrega principal.
 
 ## ADR-001: Arquitetura em camadas
 
 ### Contexto
 
-O backend precisa separar responsabilidades entre HTTP, regras de negocio e persistencia, mantendo uma estrutura compreensivel para uma equipe pequena e para um projeto com prazo curto.
+O backend precisa separar responsabilidades entre HTTP, regras de negócio e persistência, mantendo uma estrutura compreensível para uma equipe pequena e para um projeto com prazo curto.
 
 ### Problema
 
-Colocar validacoes, consultas e regras de negocio diretamente nos controllers criaria alto acoplamento, dificultaria os testes e tornaria futuras alteracoes mais arriscadas.
+Colocar validações, consultas e regras de negócio diretamente nos controllers criaria alto acoplamento, dificultaria os testes e tornaria futuras alterações mais arriscadas.
 
-### Opcoes consideradas
+### Opções consideradas
 
 1. Arquitetura em camadas com `controller`, `service` e `repository`.
 2. Clean Architecture completa com casos de uso, ports e adapters.
-3. Microsservicos separados por dominio.
-4. Implementacao CRUD sem separacao formal de responsabilidades.
+3. Microsserviços separados por domínio.
+4. Implementação CRUD sem separação formal de responsabilidades.
 
-### Decisao adotada
+### Decisão adotada
 
 Utilizar arquitetura em camadas, organizada por responsabilidade:
 
@@ -52,439 +52,441 @@ enums
 utils
 ```
 
-### Justificativa tecnica
+### Justificativa técnica
 
-A arquitetura em camadas oferece separacao suficiente para aplicar SOLID e Clean Code sem introduzir uma quantidade desproporcional de abstracoes. Controllers permanecem focados em HTTP, services concentram o negocio e repositories encapsulam o acesso ao banco.
+A arquitetura em camadas oferece separação suficiente para aplicar SOLID e Clean Code sem introduzir uma quantidade desproporcional de abstrações. Controllers permanecem focados em HTTP, services concentram o negócio e repositories encapsulam o acesso ao banco.
 
-### Beneficios
+### Benefícios
 
-- baixo acoplamento entre entrada HTTP e persistencia;
-- regras de negocio testaveis sem depender dos controllers;
-- estrutura facil de compreender;
-- menor custo de implementacao e manutencao;
-- possibilidade de adicionar seguranca e novos endpoints sem reescrever o dominio atual.
+- baixo acoplamento entre entrada HTTP e persistência;
+- regras de negócio testáveis sem depender dos controllers;
+- estrutura fácil de compreender;
+- menor custo de implementação e manutenção;
+- possibilidade de adicionar segurança e novos endpoints sem reescrever o domínio atual.
 
 ### Trade-offs
 
-- nao existe isolamento completo do dominio em relacao ao framework;
-- algumas dependencias entre camadas ainda serao permitidas;
-- a estrutura nao resolve sozinha problemas de modelagem ou de concorrencia.
+- não existe isolamento completo do domínio em relação ao framework;
+- algumas dependências entre camadas ainda serão permitidas;
+- a estrutura não resolve sozinha problemas de modelagem ou de concorrência.
 
-### Evolucao futura
+### Evolução futura
 
-Se o sistema crescer, os modulos mais complexos poderao ser reorganizados gradualmente em uma abordagem hexagonal ou Clean Architecture. A evolucao devera ser motivada por necessidade real, e nao apenas por formalidade arquitetural.
+Se o sistema crescer, os módulos mais complexos poderão ser reorganizados gradualmente em uma abordagem hexagonal ou Clean Architecture. A evolução deverá ser motivada por necessidade real, e não apenas por formalidade arquitetural.
 
 ## ADR-002: Entidade Service no modelo inicial
 
 ### Contexto
 
-O dominio do desafio envolve servicos oferecidos ao cliente. Mesmo que o gerenciamento completo do catalogo nao seja um requisito da primeira entrega, o agendamento precisa referenciar o servico escolhido.
+O domínio do desafio envolve serviços oferecidos ao cliente. Mesmo que o gerenciamento completo do catálogo não seja um requisito da primeira entrega, o agendamento precisa referenciar o serviço escolhido.
 
 ### Problema
 
-Armazenar o nome do servico diretamente em `Appointment` permitiria inconsistencias, duplicacao de texto e dificultaria evolucoes como duracao e ativacao do servico.
+Armazenar o nome do serviço diretamente em `Appointment` permitiria inconsistências, duplicação de texto e dificultaria evoluções como duração e ativação do serviço.
 
-### Opcoes consideradas
+### Opções consideradas
 
-1. Armazenar o servico como texto livre em `Appointment`.
-2. Armazenar o servico como enum fechado.
+1. Armazenar o serviço como texto livre em `Appointment`.
+2. Armazenar o serviço como enum fechado.
 3. Criar `Service` como entidade relacionada a `Appointment`.
-4. Criar tambem catalogo, profissionais e recursos de atendimento.
+4. Criar também catálogo, profissionais e recursos de atendimento.
 
-### Decisao adotada
+### Decisão adotada
 
-Criar a entidade `Service` com `id`, `name`, `durationMinutes`, `active`, `createdAt` e `updatedAt`. A entidade `Appointment` tera `service` como relacionamento `ManyToOne` com carregamento `LAZY`. O status sera representado pelo enum `AppointmentStatus`.
+Criar a entidade `Service` com `id`, `name`, `durationMinutes`, `active`, `createdAt` e `updatedAt`. A entidade `Appointment` terá `service` como relacionamento `ManyToOne` com carregamento `LAZY`. O status será representado pelo enum `AppointmentStatus`.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-A entidade representa corretamente o dominio sem antecipar entidades de profissionais, recursos ou um catalogo administrativo completo. A relacao fornece integridade referencial e deixa a duracao pronta para futuras regras de disponibilidade.
+A entidade representa corretamente o domínio sem antecipar entidades de profissionais, recursos ou um catálogo administrativo completo. A relação fornece integridade referencial e deixa a duração pronta para futuras regras de disponibilidade.
 
-### Beneficios
+### Benefícios
 
 - integridade referencial;
-- ausencia de nomes de servico duplicados nos agendamentos;
-- duracao pronta para evolucao;
-- possibilidade de ativar ou desativar servicos;
-- modelo ainda pequeno e compreensivel;
-- menor risco de inconsistencias de dados.
+- ausência de nomes de serviço duplicados nos agendamentos;
+- duração pronta para evolução;
+- possibilidade de ativar ou desativar serviços;
+- modelo ainda pequeno e compreensível;
+- menor risco de inconsistências de dados.
 
 ### Trade-offs
 
-- ainda nao havera telas ou endpoints completos de gerenciamento de servicos;
-- a relacao adiciona uma tabela e um join nas consultas que exibirem dados do servico;
-- preco e regras avancadas de disponibilidade permanecem fora do MVP;
-- a duracao sera persistida, mas nao sera usada por todas as regras nesta etapa.
+- ainda não haverá telas ou endpoints completos de gerenciamento de serviços;
+- a relação adiciona uma tabela e um join nas consultas que exibirem dados do serviço;
+- preço e regras avançadas de disponibilidade permanecem fora do MVP;
+- a duração será persistida, mas não será usada por todas as regras nesta etapa.
 
-### Evolucao futura
+### Evolução futura
 
-Adicionar catalogo administrativo, preco, regras de disponibilidade e demais atributos quando houver necessidade real. Profissionais e recursos de atendimento serao modelados separadamente quando o dominio exigir mais de um recurso.
+Adicionar catálogo administrativo, preço, regras de disponibilidade e demais atributos quando houver necessidade real. Profissionais e recursos de atendimento serão modelados separadamente quando o domínio exigir mais de um recurso.
 
 ## ADR-003: PostgreSQL com Flyway
 
 ### Contexto
 
-O sistema precisa persistir dados de agendamento de forma consistente e sera hospedado utilizando PostgreSQL no Supabase.
+O sistema precisa persistir dados de agendamento de forma consistente e será hospedado utilizando PostgreSQL no Supabase.
 
 ### Problema
 
-Alteracoes automaticas de schema podem gerar divergencias entre ambientes e dificultar a reproducao do banco em desenvolvimento, testes e producao.
+Alterações automaticas de schema podem gerar divergências entre ambientes e dificultar a reprodução do banco em desenvolvimento, testes e produção.
 
-### Opcoes consideradas
+### Opções consideradas
 
 1. PostgreSQL com `ddl-auto=create`.
 2. PostgreSQL com `ddl-auto=update`.
 3. PostgreSQL com migrations versionadas via Flyway.
 4. Banco sem controle formal de schema.
 
-### Decisao adotada
+### Decisão adotada
 
-Utilizar PostgreSQL e Flyway para versionar o schema. O Hibernate sera configurado com `ddl-auto=validate`, evitando que a aplicacao altere a estrutura do banco automaticamente.
+Utilizar PostgreSQL e Flyway para versionar o schema. O Hibernate será configurado com `ddl-auto=validate`, evitando que a aplicação altere a estrutura do banco automaticamente.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-Flyway torna as alteracoes explicitas, auditaveis e reproduziveis. O Hibernate pode validar se o mapeamento corresponde ao schema, mas nao deve ser responsavel por decidir alteracoes estruturais em producao.
+Flyway torna as alterações explicitas, auditáveis e reproduzíveis. O Hibernate pode validar se o mapeamento corresponde ao schema, mas não deve ser responsável por decidir alterações estruturais em produção.
 
-### Beneficios
+### Benefícios
 
-- schema reproduzivel;
-- historico de migracoes;
-- maior seguranca em deploys;
-- deteccao de divergencias entre entidade e banco;
+- schema reproduzível;
+- histórico de migrações;
+- maior segurança em deploys;
+- detecção de divergências entre entidade e banco;
 - suporte adequado ao ambiente Supabase.
 
 ### Trade-offs
 
-- cada alteracao persistente exige uma migration;
-- a equipe precisa tratar migrations como parte do codigo;
-- corrigir uma migration ja aplicada exige uma nova migration.
+- cada alteração persistente exige uma migration;
+- a equipe precisa tratar migrations como parte do código;
+- corrigir uma migration já aplicada exige uma nova migration.
 
-### Evolucao futura
+### Evolução futura
 
-Adicionar migrations para entidades de servico, profissionais, recursos, auditoria e demais funcionalidades apenas quando entrarem no escopo aprovado.
+Adicionar migrations para entidades de serviço, profissionais, recursos, auditoria e demais funcionalidades apenas quando entrarem no escopo aprovado.
 
 ## ADR-004: DTOs na fronteira da API
 
 ### Contexto
 
-As entidades JPA representam persistencia, enquanto a API representa contratos externos consumidos pelo frontend.
+As entidades JPA representam persistência, enquanto a API representa contratos externos consumidos pelo frontend.
 
 ### Problema
 
-Retornar entidades diretamente exporia detalhes internos, criaria dependencia entre API e banco e poderia causar problemas de serializacao, lazy loading e alteracoes involuntarias.
+Retornar entidades diretamente exporia detalhes internos, criaria dependência entre API e banco e poderia causar problemas de serialização, lazy loading e alterações involuntárias.
 
-### Opcoes consideradas
+### Opções consideradas
 
 1. Retornar entidades JPA diretamente.
-2. Usar mapas genericos em todas as respostas.
+2. Usar mapas genéricos em todas as respostas.
 3. Criar DTOs de request e response.
 4. Usar uma camada de mapeamento somente quando surgir um problema.
 
-### Decisao adotada
+### Decisão adotada
 
-Todos os endpoints receberao e retornarao DTOs. Entidades JPA nunca serao expostas diretamente. Mappers serao usados para converter entre DTOs e entidades.
+Todos os endpoints receberão e retornarão DTOs. Entidades JPA nunca serão expostas diretamente. Mappers serão usados para converter entre DTOs e entidades.
 
-### Justificativa tecnica
+### Justificativa técnica
 
 DTOs permitem controlar exatamente os dados publicados, evoluir o contrato sem alterar o modelo persistido e evitar acoplamento com detalhes do JPA.
 
-### Beneficios
+### Benefícios
 
 - contratos explicitos;
 - menor risco de vazamento de dados;
-- respostas menores e mais performaticas;
-- menor risco de `N+1` causado por serializacao;
+- respostas menores e mais performáticas;
+- menor risco de `N+1` causado por serialização;
 - facilidade para versionar a API.
 
 ### Trade-offs
 
-- mais classes e conversoes;
+- mais classes e conversões;
 - necessidade de manter DTOs e mappers atualizados;
-- maior volume inicial de codigo.
+- maior volume inicial de código.
 
-### Evolucao futura
+### Evolução futura
 
-Adicionar DTOs de projecao especificos para listagens, disponibilidade e dashboards, evitando carregar colunas que nao serao exibidas.
+Adicionar DTOs de projeção específicos para listagens, disponibilidade e dashboards, evitando carregar colunas que não serão exibidas.
 
-## ADR-005: Regras de negocio na camada Service
+## ADR-005: Regras de negócio na camada Service
 
 ### Contexto
 
-O agendamento possui regras que nao podem ser reduzidas a uma operacao simples de persistencia: disponibilidade, conflitos e transicoes de status.
+O agendamento possui regras que não podem ser reduzidas a uma operação simples de persistência: disponibilidade, conflitos e transições de status.
 
 ### Problema
 
-Distribuir regras entre controllers, repositories e entidades de forma inconsistente provocaria duplicacao e comportamentos diferentes conforme o endpoint utilizado.
+Distribuir regras entre controllers, repositories e entidades de forma inconsistente provocaria duplicação e comportamentos diferentes conforme o endpoint utilizado.
 
-### Opcoes consideradas
+### Opções consideradas
 
 1. Concentrar regras nos controllers.
 2. Espalhar regras entre controller e repository.
-3. Concentrar regras de aplicacao na camada `service`.
+3. Concentrar regras de aplicação na camada `service`.
 4. Criar uma estrutura completa de use cases e ports.
 
-### Decisao adotada
+### Decisão adotada
 
-A camada `service` sera a proprietaria das regras de negocio e da orquestracao das operacoes transacionais. Controllers apenas recebem, delegam e respondem.
+A camada `service` será a proprietaria das regras de negócio e da orquestração das operações transacionais. Controllers apenas recebem, delegam e respondem.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-Essa escolha atende ao escopo do MVP, mantem os metodos pequenos e permite testar o comportamento com mocks ou testes de integracao sem acoplar a regra ao protocolo HTTP.
+Essa escolha atende ao escopo do MVP, mantem os métodos pequenos e permite testar o comportamento com mocks ou testes de integração sem acoplar a regra ao protocolo HTTP.
 
-### Beneficios
+### Benefícios
 
 - regras centralizadas;
-- menor duplicacao;
+- menor duplicação;
 - testes unitarios mais simples;
-- controllers previsiveis;
+- controllers previsíveis;
 - facilidade para adicionar novos consumidores da mesma regra.
 
 ### Trade-offs
 
-- services podem crescer se nao houver disciplina;
-- nem toda regra sera automaticamente uma regra de entidade;
-- a separacao nao substitui uma boa modelagem do dominio.
+- services podem crescer se não houver disciplina;
+- nem toda regra será automaticamente uma regra de entidade;
+- a separação não substitui uma boa modelagem do domínio.
 
-### Evolucao futura
+### Evolução futura
 
-Extrair componentes de dominio ou casos de uso independentes caso a camada `service` passe a concentrar fluxos muito diferentes ou regras complexas.
+Extrair componentes de domínio ou casos de uso independentes caso a camada `service` passe a concentrar fluxos muito diferentes ou regras complexas.
 
-## ADR-006: Disponibilidade e concorrencia protegidas pelo banco
+## ADR-006: Disponibilidade e concorrência protegidas pelo banco
 
 ### Contexto
 
-Dois clientes podem tentar reservar o mesmo horario simultaneamente. Verificar a disponibilidade antes de salvar nao elimina uma condicao de corrida.
+Dois clientes podem tentar reservar o mesmo horário simultaneamente. Verificar a disponibilidade antes de salvar não elimina uma condição de corrida.
 
 ### Problema
 
-Uma validacao somente na aplicacao pode permitir duas reservas para o mesmo horario quando duas requisicoes consultam o banco antes de qualquer uma concluir o `INSERT`.
+Uma validação somente na aplicação pode permitir duas reservas para o mesmo horário quando duas requisições consultam o banco antes de qualquer uma concluir o `INSERT`.
 
-### Opcoes consideradas
+### Opções consideradas
 
-1. Confiar somente na verificacao feita pelo service.
-2. Bloquear toda a agenda durante a operacao.
-3. Usar constraint ou indice de unicidade no PostgreSQL, combinado com validacao na aplicacao.
+1. Confiar somente na verificação feita pelo service.
+2. Bloquear toda a agenda durante a operação.
+3. Usar constraint ou indice de unicidade no PostgreSQL, combinado com validação na aplicação.
 4. Usar fila para serializar todas as reservas.
 
-### Decisao adotada
+### Decisão adotada
 
-O service verificara conflitos para fornecer uma resposta clara ao cliente, e o PostgreSQL tera constraint ou indice adequado para proteger a integridade em concorrencia. A excecao de violacao sera convertida em erro HTTP `409 Conflict`.
+O service verificará conflitos para fornecer uma resposta clara ao cliente, e o PostgreSQL terá constraint ou indice adequado para proteger a integridade em concorrência. A exceção de violação será convertida em erro HTTP `409 Conflict`.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-A aplicacao oferece uma boa experiencia e o banco permanece como ultima garantia de consistencia. A solucao evita locks amplos e filas desnecessarias para o volume esperado do desafio.
+A aplicação oferece uma boa experiência e o banco permanece como última garantia de consistência. A solução evita locks amplos e filas desnecessárias para o volume esperado do desafio.
 
-### Beneficios
+### Benefícios
 
-- integridade dos dados mesmo sob concorrencia;
-- transacoes curtas;
-- resposta clara para horario indisponivel;
-- comportamento previsivel para futuras instancias do backend.
+- integridade dos dados mesmo sob concorrência;
+- transações curtas;
+- resposta clara para horário indisponível;
+- comportamento previsível para futuras instâncias do backend.
 
 ### Trade-offs
 
-- e necessario mapear a excecao de conflito;
-- regras de disponibilidade mais avancadas podem exigir uma modelagem adicional;
-- constraints de intervalo podem exigir recursos especificos do PostgreSQL.
+- e necessário mapear a exceção de conflito;
+- regras de disponibilidade mais avançadas podem exigir uma modelagem adicional;
+- constraints de intervalo podem exigir recursos específicos do PostgreSQL.
 
-### Evolucao futura
+### Evolução futura
 
-Adicionar profissionais, salas ou recursos de atendimento e aplicar a regra de conflito por recurso. Para maior volume, avaliar idempotencia, filas e estrategias de reserva temporaria.
+Adicionar profissionais, salas ou recursos de atendimento e aplicar a regra de conflito por recurso. Para maior volume, avaliar idempotência, filas e estratégias de reserva temporária.
 
 ## ADR-007: API versionada e respostas padronizadas
 
 ### Contexto
 
-O frontend sera um consumidor separado do backend e a aplicacao podera evoluir depois do desafio.
+O frontend será um consumidor separado do backend e a aplicação poderá evoluir depois do desafio.
 
 ### Problema
 
-Alterar endpoints sem versionamento ou retornar erros em formatos diferentes aumenta o acoplamento e dificulta a manutencao do cliente.
+Alterar endpoints sem versionamento ou retornar erros em formatos diferentes aumenta o acoplamento e dificulta a manutenção do cliente.
 
-### Opcoes consideradas
+### Opções consideradas
 
-1. Endpoints sem versao.
-2. Versionamento por header desde o inicio.
-3. Versionamento explicito em `/api/v1`.
+1. Endpoints sem versão.
+2. Versionamento por header desde o início.
+3. Versionamento explícito em `/api/v1`.
 4. API GraphQL.
 
-### Decisao adotada
+### Decisão adotada
 
 Utilizar REST versionado em `/api/v1`, com DTOs, `ResponseEntity` e um formato comum de erro implementado por `@RestControllerAdvice`.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-O versionamento na URL e simples de testar, facil de compreender e suficiente para o desafio. Um formato padronizado reduz tratamento condicional no frontend.
+O versionamento na URL é simples de testar, fácil de compreender é suficiente para o desafio. Um formato padronizado reduz tratamento condicional no frontend.
 
-### Beneficios
+### Benefícios
 
 - contratos mais claros;
-- evolucao sem quebra imediata dos clientes;
-- erros previsiveis;
-- documentacao mais objetiva.
+- evolução sem quebra imediata dos clientes;
+- erros previsíveis;
+- documentação mais objetiva.
 
 ### Trade-offs
 
-- endpoints precisam ser mantidos durante uma transicao de versao;
-- o versionamento nao substitui compatibilidade bem planejada;
-- GraphQL e recursos mais avancados ficam fora do escopo.
+- endpoints precisam ser mantidos durante uma transição de versão;
+- o versionamento não substitui compatibilidade bem planejada;
+- GraphQL e recursos mais avançados ficam fora do escopo.
 
-### Evolucao futura
+### Evolução futura
 
-Criar `/api/v2` somente diante de uma quebra de contrato real. Adicionar OpenAPI e validacao automatica de contratos quando a API crescer.
+Criar `/api/v2` somente diante de uma quebra de contrato real. Adicionar OpenAPI e validação automática de contratos quando a API crescer.
 
-## ADR-008: JWT e Spring Security para a area administrativa
+## ADR-008: JWT e Spring Security para a área administrativa
 
 ### Contexto
 
-A entrega final exige que operacoes administrativas sejam protegidas, sem adicionar atrito ao fluxo publico de agendamento.
+A entrega final exige que operações administrativas sejam protegidas, sem adicionar atrito ao fluxo público de agendamento.
 
 ### Problema
 
-Os endpoints administrativos permitem consultar e alterar agendamentos. Expo-los sem autenticacao nao e adequado para uma entrega pronta para producao, enquanto autenticar os endpoints de reserva prejudicaria a experiencia do cliente.
+Os endpoints administrativos permitem consultar e alterar agendamentos. Expô-los sem autenticação não é adequado para uma entrega pronta para produção, enquanto autenticar os endpoints de reserva prejudicaria a experiência do cliente.
 
-### Opcoes consideradas
+### Opções consideradas
 
-1. Manter todos os endpoints publicos e proteger depois.
+1. Manter todos os endpoints públicos e proteger depois.
 2. Usar uma senha fixa ou segredo no frontend.
-3. Implementar sessao stateful para toda a API.
-4. Implementar Spring Security com JWT somente na area administrativa.
+3. Implementar sessão stateful para toda a API.
+4. Implementar Spring Security com JWT somente na área administrativa.
 
-### Decisao adotada
+### Decisão adotada
 
-Adotar Spring Security stateless com JWT para `/api/v1/admin/**`. O login e a renovacao de token ficam em `/api/v1/auth`, com access token de curta duracao e refresh token. Endpoints de servicos, agendamentos de clientes, autenticacao, health check e documentacao permanecem publicos.
+Adotar Spring Security stateless com JWT para `/api/v1/admin/**` (role `ADMIN`) e `/api/v1/client/**` (role `CLIENT`). O login e a renovação de token ficam em `/api/v1/auth` e `/api/v1/client/auth`, com access token de curta duração e refresh token. Endpoints de serviços, agendamento público, autenticação, health check e documentação (em dev) permanecem públicos.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-A separacao existente entre endpoints administrativos e publicos permite adicionar seguranca na fronteira HTTP sem alterar regras de negocio de agendamentos. JWT evita estado de sessao no servidor e BCrypt protege a credencial inicial do administrador.
+A separação existente entre endpoints administrativos, de cliente e públicos permite adicionar segurança na fronteira HTTP sem alterar regras de negócio de agendamentos. JWT evita estado de sessão no servidor e BCrypt protege as credenciais. Rate limiting in-memory por IP cobre abuso básico em instância única.
 
-### Beneficios
+### Benefícios
 
-- area administrativa protegida por autenticacao;
-- fluxo de reserva do cliente continua sem login;
+- área administrativa protegida por autenticação;
+- conta de cliente opcional sem obrigar login no fluxo de reserva;
 - respostas 401 e 403 padronizadas com o restante da API;
-- configuracao de credenciais e expiracoes por ambiente.
+- configuração de credenciais e expirações por ambiente;
+- proteção básica contra força bruta e spam de agendamentos.
 
 ### Trade-offs
 
-- logout invalida refresh tokens em denylist em memoria (access tokens seguem a expiracao curta);
-- existe apenas o perfil administrativo unico nesta entrega;
-- rotacao de refresh tokens e auditoria completa permanecem evolucoes futuras.
+- logout invalida refresh tokens em denylist em memória (access tokens seguem a expiração curta);
+- rate limiting in-memory não compartilha contadores entre várias instâncias;
+- rotação de refresh tokens e auditoria completa permanecem evoluções futuras.
 
-### Evolucao futura
+### Evolução futura
 
-Adicionar revogacao persistida e rotacao de refresh tokens, recuperacao de senha, controle de acesso por perfis, rate limiting e auditoria.
+Adicionar revogação persistida e rotação de refresh tokens, recuperação de senha, controle de acesso por perfis mais granulares, rate limiting distribuído e auditoria.
 
 ## ADR-009: Performance proporcional ao escopo
 
 ### Contexto
 
-Mesmo com volume inicial pequeno, decisoes simples de consulta podem criar problemas de performance e dificultar a evolucao.
+Mesmo com volume inicial pequeno, decisões simples de consulta podem criar problemas de performance e dificultar a evolução.
 
 ### Problema
 
-Carregar listas sem limite, retornar entidades completas ou executar consultas repetidas pode gerar custo desnecessario e problemas de `N+1`.
+Carregar listas sem limite, retornar entidades completas ou executar consultas repetidas pode gerar custo desnecessário e problemas de `N+1`.
 
-### Opcoes consideradas
+### Opções consideradas
 
 1. Priorizar somente velocidade de desenvolvimento.
-2. Implementar cache, filas e otimizacao distribuida desde o inicio.
-3. Usar consultas especificas, DTOs, filtros, paginacao e indices adequados.
+2. Implementar cache, filas e otimização distribuída desde o início.
+3. Usar consultas específicas, DTOs, filtros, paginação e índices adequados.
 
-### Decisao adotada
+### Decisão adotada
 
-Aplicar otimizacoes de baixo custo e alto valor: paginacao administrativa, filtros no banco, DTOs especificos, indices para consultas frequentes, transacoes curtas e ausencia de carregamento desnecessario.
+Aplicar otimizações de baixo custo e alto valor: paginação administrativa, filtros no banco, DTOs específicos, índices para consultas frequentes, transações curtas e ausência de carregamento desnecessário.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-Essas praticas previnem problemas comuns sem introduzir infraestrutura adicional. Cache, filas e particionamento nao sao necessarios para o volume esperado do desafio.
+Essas práticas previnem problemas comuns sem introduzir infraestrutura adicional. Cache, filas e particionamento não são necessarios para o volume esperado do desafio.
 
-### Beneficios
+### Benefícios
 
 - menor volume de dados transferidos;
-- consultas mais previsiveis;
-- menor consumo de memoria;
-- base tecnica para crescimento gradual;
-- codigo mais facil de medir e otimizar.
+- consultas mais previsíveis;
+- menor consumo de memória;
+- base técnica para crescimento gradual;
+- código mais fácil de medir e otimizar.
 
 ### Trade-offs
 
 - exige pensar nos contratos e consultas antes de implementar;
-- pode demandar projections ou queries especificas;
-- nao substitui testes de carga quando o volume real crescer.
+- pode demandar projections ou queries específicas;
+- não substitui testes de carga quando o volume real crescer.
 
-### Evolucao futura
+### Evolução futura
 
-Adicionar cache, observabilidade, testes de carga, monitoramento e otimizacoes guiadas por metricas reais, evitando otimizar prematuramente.
+Adicionar cache, observabilidade, testes de carga, monitoramento e otimizações guiadas por métricas reais, evitando otimizar prematuramente.
 
 ## ADR-010: Escopo consciente de entrega
 
 ### Contexto
 
-O projeto precisa ser entregue em sete dias e sera avaliado principalmente por funcionamento, organizacao, experiencia, responsividade, documentacao e boas praticas.
+O projeto precisa ser entregue em sete dias e será avaliado principalmente por funcionamento, organização, experiência, responsividade, documentação e boas práticas.
 
 ### Problema
 
-Adicionar funcionalidades sem priorizacao poderia reduzir a qualidade do fluxo principal, aumentar bugs e impedir uma entrega completa.
+Adicionar funcionalidades sem priorização poderia reduzir a qualidade do fluxo principal, aumentar bugs e impedir uma entrega completa.
 
-### Opcoes consideradas
+### Opções consideradas
 
-1. Tentar implementar todas as funcionalidades de um sistema de producao.
-2. Entregar um CRUD minimo sem preocupacao arquitetural.
-3. Implementar integralmente os requisitos e registrar evolucoes futuras.
+1. Tentar implementar todas as funcionalidades de um sistema de produção.
+2. Entregar um CRUD mínimo sem preocupação arquitetural.
+3. Implementar integralmente os requisitos e registrar evoluções futuras.
 
-### Decisao adotada
+### Decisão adotada
 
-Entregar primeiro um MVP completo, testado e documentado, com arquitetura em camadas, validacao, controle de conflitos, persistencia versionada e separacao entre cliente e administrador.
+Entregar primeiro um MVP completo, testado e documentado, com arquitetura em camadas, validação, controle de conflitos, persistência versionada e separação entre cliente e administrador.
 
-### Justificativa tecnica
+### Justificativa técnica
 
-Qualidade e adequacao ao problema sao mais importantes do que quantidade de funcionalidades. A decisao demonstra capacidade de priorizacao e reduz risco tecnico dentro do prazo.
+Qualidade e adequação ao problema são mais importantes do que quantidade de funcionalidades. A decisão demonstra capacidade de priorização e reduz risco técnico dentro do prazo.
 
-### Beneficios
+### Benefícios
 
 - maior probabilidade de entrega funcional;
-- menor superficie de bugs;
-- revisao e testes mais completos;
-- documentacao coerente com o que foi entregue;
-- base clara para evolucao.
+- menor superfície de bugs;
+- revisão e testes mais completos;
+- documentação coerente com o que foi entregue;
+- base clara para evolução.
 
 ### Trade-offs
 
-- funcionalidades de producao permanecem fora da primeira versao;
-- algumas decisoes serao deliberadamente simples;
-- o MVP nao pretende representar todos os cenarios de uma empresa real.
+- funcionalidades de produção permanecem fora da primeira versão;
+- algumas decisões serão deliberadamente simples;
+- o MVP não pretende representar todos os cenários de uma empresa real.
 
-### Evolucao futura
+### Evolução futura
 
-As funcionalidades adiadas deverao entrar por prioridade, impacto e evidencias de uso, sempre acompanhadas de testes, migracoes e revisao dos contratos.
+As funcionalidades adiadas deverão entrar por prioridade, impacto e evidências de uso, sempre acompanhadas de testes, migrações e revisão dos contratos.
 
-## Funcionalidades planejadas para versoes futuras
+## Funcionalidades planejadas para versões futuras
 
-As funcionalidades abaixo poderiam tornar o sistema mais robusto e completo em um ambiente de producao. Elas nao foram implementadas no MVP porque o desafio possui escopo definido e prazo limitado de sete dias. O adiamento foi consciente: priorizamos qualidade, organizacao, performance proporcional e entrega confiavel dos requisitos obrigatorios.
+As funcionalidades abaixo poderiam tornar o sistema mais robusto e completo em um ambiente de produção. Elas não foram implementadas no MVP porque o desafio possui escopo definido e prazo limitado de sete dias. O adiamento foi consciente: priorizamos qualidade, organização, performance proporcional e entrega confiável dos requisitos obrigatórios.
 
-### Seguranca e acesso
+### Segurança e acesso
 
-- controle de acesso por perfis;
-- rotacao e revogacao persistida de refresh tokens;
-- auditoria completa de operacoes administrativas.
+- controle de acesso por perfis mais granulares;
+- rotação e revogação persistida de refresh tokens;
+- rate limiting distribuído (Redis) para múltiplas instâncias;
+- auditoria completa de operações administrativas.
 
-### Dominio e agenda
+### Domínio e agenda
 
-- cadastro completo de servicos;
+- cadastro completo de serviços;
 - cadastro de profissionais;
-- multiplos recursos de atendimento;
-- agenda configuravel;
-- horarios personalizados;
+- múltiplos recursos de atendimento;
+- agenda configurável;
+- horários personalizados;
 - intervalos entre atendimentos;
 - bloqueio de datas;
 - feriados;
-- cancelamento automatico;
+- cancelamento automático;
 - soft delete.
 
-### Comunicacao e operacao
+### Comunicação e operação
 
-- notificacoes por e-mail;
-- notificacoes por WhatsApp;
+- notificações por e-mail;
+- notificações por WhatsApp;
 - dashboard administrativo;
 - logs estruturados;
 - observabilidade;
@@ -496,7 +498,7 @@ As funcionalidades abaixo poderiam tornar o sistema mais robusto e completo em u
 - Docker;
 - CI/CD;
 - testes de carga;
-- internacionalizacao;
+- internacionalização;
 - multiempresa (Multi Tenant).
 
-Cada item devera ser avaliado novamente quanto a requisitos, custo, seguranca, impacto no modelo de dados, operacao e necessidade real antes de ser implementado.
+Cada item deverá ser avaliado novamente quanto a requisitos, custo, segurança, impacto no modelo de dados, operação e necessidade real antes de ser implementado.

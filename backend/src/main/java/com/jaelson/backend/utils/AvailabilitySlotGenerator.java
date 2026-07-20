@@ -9,6 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Gera a grade de horários a partir de BusinessHours.
+ * Slots ocupados e horários já passados no dia de hoje saem da lista —
+ * o front só renderiza o que sobra, então o cliente não "escolhe" conflito.
+ */
 public final class AvailabilitySlotGenerator {
 
     private AvailabilitySlotGenerator() {
@@ -21,6 +26,7 @@ public final class AvailabilitySlotGenerator {
     ) {
         List<LocalTime> availableSlots = new ArrayList<>();
         LocalTime slot = LocalTime.of(BusinessHours.START_HOUR, 0);
+        // Último slot começa INTERVAL minutos antes do fechamento (ex.: 17:30 se fecha às 18:00).
         LocalTime lastSlot = LocalTime.of(BusinessHours.END_HOUR, 0)
                 .minusMinutes(BusinessHours.SLOT_INTERVAL_MINUTES);
 

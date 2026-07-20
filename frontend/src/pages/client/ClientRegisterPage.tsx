@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '../../api/client'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
+import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 
 const registerSchema = z.object({
@@ -52,6 +53,11 @@ export function ClientRegisterPage() {
 
   return (
     <section className="mx-auto max-w-md space-y-6 py-8">
+      <SeoHead
+        title="Criar conta"
+        description="Cadastre-se no AgendaPro para acompanhar e cancelar seus agendamentos."
+        path="/cadastro"
+      />
       <Card className="space-y-6">
         <div className="text-center">
           <h1 className="font-display text-3xl font-bold text-ink-900">Criar conta</h1>

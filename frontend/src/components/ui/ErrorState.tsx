@@ -11,7 +11,7 @@ export function ErrorState({
   message: string
   onRetry?: () => void
   action?: ReactNode
-  /** Soft style for transient connectivity issues (cold start / CORS / offline). */
+  /** Visual mais suave para falhas transitórias (servidor acordando / rede). */
   soft?: boolean
 }) {
   const Icon = soft ? WifiOff : AlertCircle
@@ -29,7 +29,7 @@ export function ErrorState({
       </div>
       <div className="max-w-md space-y-1">
         <p className="text-sm font-medium text-ink-800">
-          {soft ? 'Conectando ao servidor' : 'Não foi possível concluir'}
+          {soft ? 'Conectando ao servidor' : 'Algo deu errado'}
         </p>
         <p className="text-sm text-ink-600">{message}</p>
       </div>
