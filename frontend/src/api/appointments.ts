@@ -16,9 +16,9 @@ export async function fetchAppointmentById(id: number): Promise<Appointment> {
   return getWithRetry<Appointment>(`/appointments/${id}`)
 }
 
-export async function fetchAvailability(date: string): Promise<AvailabilityResponse> {
+export async function fetchAvailability(date: string, serviceId: number): Promise<AvailabilityResponse> {
   return getWithRetry<AvailabilityResponse>('/appointments/availability', {
-    params: { date },
+    params: { date, serviceId },
   })
 }
 

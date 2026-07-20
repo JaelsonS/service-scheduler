@@ -7,6 +7,7 @@ import com.jaelson.backend.entity.Appointment;
 import com.jaelson.backend.entity.ClientUser;
 import com.jaelson.backend.entity.Service;
 import com.jaelson.backend.enums.AppointmentStatus;
+import com.jaelson.backend.utils.PhoneMasker;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -37,6 +38,21 @@ public final class AppointmentMapper {
                 appointment.getId(),
                 appointment.getCustomerName(),
                 appointment.getCustomerPhone(),
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentTime(),
+                appointment.getStatus(),
+                ServiceMapper.toResponse(appointment.getService()),
+                appointment.getCreatedAt(),
+                appointment.getUpdatedAt()
+        );
+    }
+
+    /** Confirmação pública: telefone mascarado (não vaza PII completa por ID). */
+    public static AppointmentResponseDTO toPublicResponse(Appointment appointment) {
+        return new AppointmentResponseDTO(
+                appointment.getId(),
+                appointment.getCustomerName(),
+                PhoneMasker.mask(appointment.getCustomerPhone()),
                 appointment.getAppointmentDate(),
                 appointment.getAppointmentTime(),
                 appointment.getStatus(),

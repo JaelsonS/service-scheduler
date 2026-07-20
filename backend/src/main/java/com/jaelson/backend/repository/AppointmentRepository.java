@@ -67,6 +67,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             @Param("cancelledStatus") AppointmentStatus cancelledStatus
     );
 
+    @EntityGraph(attributePaths = "service")
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.appointmentDate = :date
+              AND a.status <> :cancelledStatus
+            """)
+    List<Appointment> findActiveWithServiceByDate(
+            @Param("date") LocalDate date,
+            @Param("cancelledStatus") AppointmentStatus cancelledStatus
+    );
+
     @Query("""
             SELECT a.status, COUNT(a) FROM Appointment a
             WHERE (:date IS NULL OR a.appointmentDate = :date)

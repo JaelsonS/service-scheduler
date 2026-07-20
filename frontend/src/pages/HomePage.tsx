@@ -17,7 +17,7 @@ export function HomePage() {
           Agende seu horário com praticidade
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-600 sm:mx-0 sm:text-base md:text-lg">
-          Data, horário e confirmação — nessa ordem, em poucos passos.
+          Serviço, data, horário e confirmação — nessa ordem, em poucos passos.
         </p>
       </div>
 

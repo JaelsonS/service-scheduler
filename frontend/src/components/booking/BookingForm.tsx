@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CalendarDays, CheckCircle2, Clock3, UserRound } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock3, Scissors, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -139,18 +139,18 @@ export function BookingForm() {
     loading: slotsLoading,
     error: slotsError,
     reload: reloadAvailability,
-  } = useAvailability(selectedDate || null)
+  } = useAvailability(selectedDate || null, selectedServiceId || null)
 
   useEffect(() => {
     setValue('appointmentTime', '')
-  }, [selectedDate, setValue])
+  }, [selectedDate, selectedServiceId, setValue])
 
   useEffect(() => {
-    if (!selectedDate) {
+    if (!selectedDate || !selectedServiceId) {
       return
     }
     timeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [selectedDate])
+  }, [selectedDate, selectedServiceId])
 
   useEffect(() => {
     if (!selectedTime) {
@@ -247,18 +247,48 @@ export function BookingForm() {
       <input type="hidden" {...register('appointmentDate')} />
       <input type="hidden" {...register('appointmentTime')} />
 
-      <Card className="space-y-1">
+      <Card className="space-y-4">
         <StepHeading
           step={1}
+          title="Escolha o serviço"
+          description="A duração define quanto tempo será reservado na agenda."
+          done={Boolean(selectedServiceId)}
+          icon={Scissors}
+        />
+        <Select
+          label="Serviço"
+          placeholder="Selecione um serviço"
+          error={errors.serviceId?.message}
+          options={services.map((service) => ({
+            value: String(service.id),
+            label: `${service.name} · ${service.durationMinutes} min`,
+          }))}
+          {...register('serviceId')}
+        />
+      </Card>
+
+      <Card className="space-y-1">
+        <StepHeading
+          step={2}
           title="Escolha a data"
-          description="Selecione o dia em que deseja ser atendido."
+          description={
+            selectedService
+              ? `Dia para ${selectedService.name} (${selectedService.durationMinutes} min).`
+              : 'Selecione o serviço acima para continuar.'
+          }
           done={Boolean(selectedDate)}
           icon={CalendarDays}
         />
-        <Calendar
-          selectedDate={selectedDate}
-          onSelect={(date) => setValue('appointmentDate', date, { shouldValidate: true })}
-        />
+        {!selectedServiceId ? (
+          <p className="rounded-xl bg-ink-50 px-4 py-8 text-center text-sm text-ink-500">
+            Escolha o serviço primeiro.
+          </p>
+        ) : (
+          <Calendar
+            selectedDate={selectedDate}
+            onSelect={(date) => setValue('appointmentDate', date, { shouldValidate: true })}
+          />
+        )}
         {errors.appointmentDate ? (
           <p className="pt-2 text-xs text-red-600">{errors.appointmentDate.message}</p>
         ) : null}
@@ -266,19 +296,19 @@ export function BookingForm() {
 
       <Card ref={timeSectionRef} className="space-y-1">
         <StepHeading
-          step={2}
+          step={3}
           title="Escolha o horário"
           description={
-            selectedDate
-              ? `Horários livres para ${formatDateLabel(selectedDate)}.`
-              : 'Depois da data, os horários disponíveis aparecem aqui.'
+            selectedDate && selectedService
+              ? `Horários livres para ${formatDateLabel(selectedDate)} · ${selectedService.durationMinutes} min.`
+              : 'Depois do serviço e da data, os horários aparecem aqui.'
           }
           done={Boolean(selectedTime)}
           icon={Clock3}
         />
-        {!selectedDate ? (
+        {!selectedServiceId || !selectedDate ? (
           <p className="rounded-xl bg-ink-50 px-4 py-8 text-center text-sm text-ink-500">
-            Selecione uma data acima para ver os horários.
+            Selecione serviço e data para ver os horários.
           </p>
         ) : slotsError ? (
           <ErrorState
@@ -302,9 +332,9 @@ export function BookingForm() {
 
       <Card ref={detailsSectionRef} className="space-y-4">
         <StepHeading
-          step={3}
-          title="Confirme o serviço e seus dados"
-          description="Revise o horário escolhido e complete as informações para finalizar."
+          step={4}
+          title="Seus dados"
+          description="Confira o resumo e finalize o agendamento."
           done={summaryReady}
           icon={UserRound}
         />
@@ -319,20 +349,9 @@ export function BookingForm() {
           </div>
         ) : (
           <p className="rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-500">
-            Escolha data e horário acima para ver o resumo aqui.
+            Complete serviço, data e horário para ver o resumo.
           </p>
         )}
-
-        <Select
-          label="Serviço"
-          placeholder="Selecione um serviço"
-          error={errors.serviceId?.message}
-          options={services.map((service) => ({
-            value: String(service.id),
-            label: `${service.name} · ${service.durationMinutes} min`,
-          }))}
-          {...register('serviceId')}
-        />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
@@ -354,7 +373,7 @@ export function BookingForm() {
         <Button
           type="submit"
           className="w-full sm:w-auto sm:min-w-[14rem]"
-          disabled={submitting || !selectedDate || !selectedTime}
+          disabled={submitting || !summaryReady}
         >
           {submitting ? 'Agendando...' : 'Confirmar agendamento'}
         </Button>

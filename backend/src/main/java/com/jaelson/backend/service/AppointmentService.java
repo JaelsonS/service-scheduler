@@ -30,10 +30,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @org.springframework.stereotype.Service
 public class AppointmentService {
@@ -64,8 +62,12 @@ public class AppointmentService {
     @Transactional
     public AppointmentResponseDTO create(AppointmentCreateRequestDTO request) {
         Service service = serviceCatalogService.findActiveServiceOrThrow(request.serviceId());
-        validateSchedule(request.appointmentDate(), request.appointmentTime());
-        ensureSlotIsFree(request.appointmentDate(), request.appointmentTime());
+        validateSchedule(request.appointmentDate(), request.appointmentTime(), service.getDurationMinutes());
+        ensureNoOverlap(
+                request.appointmentDate(),
+                request.appointmentTime(),
+                service.getDurationMinutes()
+        );
 
         ClientUser clientUser = resolveAuthenticatedClient().orElse(null);
         Appointment appointment = AppointmentMapper.toEntity(request, service, clientUser);
@@ -76,31 +78,41 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public AppointmentResponseDTO findById(Long id) {
-        return AppointmentMapper.toResponse(findAppointmentOrThrow(id));
+        return AppointmentMapper.toPublicResponse(findAppointmentOrThrow(id));
     }
 
     /**
-     * Disponibilidade do dia: gero a grade de slots de negócio e subtraio
-     * os ocupados (qualquer status != CANCELADO). Passado fica de fora.
-     * A unicidade no banco (índice parcial) é a rede de segurança se duas
-     * requisições corridas passarem daqui ao mesmo tempo.
+     * Disponibilidade do dia para um serviço: grade de 30 min, mas cada slot
+     * só entra se a duração do serviço cabe sem sobrepor agendamentos ativos.
      */
     @Transactional(readOnly = true)
-    public AvailabilityResponseDTO getAvailability(LocalDate date) {
+    public AvailabilityResponseDTO getAvailability(LocalDate date, Long serviceId) {
         if (date.isBefore(LocalDate.now(clock))) {
             throw new InvalidAppointmentTimeException("Não é possível consultar disponibilidade de uma data passada");
         }
 
-        List<LocalTime> occupiedTimes = appointmentRepository.findOccupiedTimesByDate(
+        Service service = serviceCatalogService.findActiveServiceOrThrow(serviceId);
+        List<Appointment> active = appointmentRepository.findActiveWithServiceByDate(
                 date,
                 AppointmentStatus.CANCELADO
         );
 
-        Set<LocalTime> occupiedSet = new HashSet<>(occupiedTimes);
+        List<AvailabilitySlotGenerator.OccupiedInterval> occupied = active.stream()
+                .map(appointment -> {
+                    LocalTime start = appointment.getAppointmentTime();
+                    int duration = appointment.getService().getDurationMinutes();
+                    return new AvailabilitySlotGenerator.OccupiedInterval(
+                            start,
+                            start.plusMinutes(duration)
+                    );
+                })
+                .toList();
+
         LocalDateTime now = LocalDateTime.now(clock);
         List<LocalTime> availableSlots = AvailabilitySlotGenerator.generateAvailableSlots(
                 date,
-                occupiedSet,
+                occupied,
+                service.getDurationMinutes(),
                 now
         );
 
@@ -200,7 +212,7 @@ public class AppointmentService {
         return java.util.Optional.of(clientAuthService.requireActiveByEmail(authentication.getName()));
     }
 
-    private void validateSchedule(LocalDate date, LocalTime time) {
+    private void validateSchedule(LocalDate date, LocalTime time, int durationMinutes) {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDate today = now.toLocalDate();
 
@@ -208,9 +220,9 @@ public class AppointmentService {
             throw new InvalidAppointmentTimeException("A data do agendamento não pode ser no passado");
         }
 
-        if (!AvailabilitySlotGenerator.isWithinBusinessHours(time)) {
+        if (!AvailabilitySlotGenerator.fitsInBusinessHours(time, durationMinutes)) {
             throw new InvalidAppointmentTimeException(
-                    "Horário fora do expediente ou inválido"
+                    "Horário fora do expediente ou duração não cabe no dia"
             );
         }
 
@@ -222,20 +234,25 @@ public class AppointmentService {
     }
 
     /**
-     * Checagem otimista de conflito. A garantia real vem do índice único
-     * parcial no PostgreSQL (status <> CANCELADO) — se duas requests
-     * passarem juntas, a segunda cai em DataIntegrityViolation → 409.
+     * Checagem de sobreposição por intervalo [início, início+duração).
+     * O índice único parcial ainda protege o mesmo horário de início em corrida.
      */
-    private void ensureSlotIsFree(LocalDate date, LocalTime time) {
-        boolean occupied = appointmentRepository.existsByAppointmentDateAndAppointmentTimeAndStatusNot(
+    private void ensureNoOverlap(LocalDate date, LocalTime time, int durationMinutes) {
+        LocalTime candidateEnd = time.plusMinutes(durationMinutes);
+        List<Appointment> active = appointmentRepository.findActiveWithServiceByDate(
                 date,
-                time,
                 AppointmentStatus.CANCELADO
         );
 
-        if (occupied) {
+        boolean overlaps = active.stream().anyMatch(appointment -> {
+            LocalTime start = appointment.getAppointmentTime();
+            LocalTime end = start.plusMinutes(appointment.getService().getDurationMinutes());
+            return time.isBefore(end) && start.isBefore(candidateEnd);
+        });
+
+        if (overlaps) {
             throw new AppointmentConflictException(
-                    "Já existe um agendamento ativo neste horário"
+                    "Já existe um agendamento ativo que conflita com este horário"
             );
         }
     }

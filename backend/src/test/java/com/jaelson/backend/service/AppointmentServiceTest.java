@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -75,11 +76,10 @@ class AppointmentServiceTest {
         );
 
         when(serviceCatalogService.findActiveServiceOrThrow(1L)).thenReturn(activeService);
-        when(appointmentRepository.existsByAppointmentDateAndAppointmentTimeAndStatusNot(
+        when(appointmentRepository.findActiveWithServiceByDate(
                 request.appointmentDate(),
-                request.appointmentTime(),
                 AppointmentStatus.CANCELADO
-        )).thenReturn(false);
+        )).thenReturn(List.of());
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
             Appointment appointment = invocation.getArgument(0);
             appointment.setId(10L);
@@ -115,7 +115,6 @@ class AppointmentServiceTest {
 
     @Test
     void shouldAllowSlotThatMatchesNowOnCurrentDay() {
-        // clock fixed at 2026-07-16T13:00Z in America/Sao_Paulo => local time 10:00:00
         AppointmentCreateRequestDTO request = new AppointmentCreateRequestDTO(
                 "Maria Silva",
                 "11999998888",
@@ -125,11 +124,10 @@ class AppointmentServiceTest {
         );
 
         when(serviceCatalogService.findActiveServiceOrThrow(1L)).thenReturn(activeService);
-        when(appointmentRepository.existsByAppointmentDateAndAppointmentTimeAndStatusNot(
+        when(appointmentRepository.findActiveWithServiceByDate(
                 request.appointmentDate(),
-                request.appointmentTime(),
                 AppointmentStatus.CANCELADO
-        )).thenReturn(false);
+        )).thenReturn(List.of());
         when(appointmentRepository.save(any(Appointment.class))).thenAnswer(invocation -> {
             Appointment appointment = invocation.getArgument(0);
             appointment.setId(10L);
@@ -143,7 +141,7 @@ class AppointmentServiceTest {
     }
 
     @Test
-    void shouldRejectOccupiedSlot() {
+    void shouldRejectOverlappingSlot() {
         AppointmentCreateRequestDTO request = new AppointmentCreateRequestDTO(
                 "Maria Silva",
                 "11999998888",
@@ -152,12 +150,15 @@ class AppointmentServiceTest {
                 1L
         );
 
+        Appointment existing = new Appointment();
+        existing.setAppointmentTime(LocalTime.of(10, 0));
+        existing.setService(activeService);
+
         when(serviceCatalogService.findActiveServiceOrThrow(1L)).thenReturn(activeService);
-        when(appointmentRepository.existsByAppointmentDateAndAppointmentTimeAndStatusNot(
+        when(appointmentRepository.findActiveWithServiceByDate(
                 eq(request.appointmentDate()),
-                eq(request.appointmentTime()),
                 eq(AppointmentStatus.CANCELADO)
-        )).thenReturn(true);
+        )).thenReturn(List.of(existing));
 
         assertThrows(AppointmentConflictException.class, () -> appointmentService.create(request));
         verify(appointmentRepository, never()).save(any());

@@ -76,14 +76,15 @@ class AppointmentControllerTest {
 
     @Test
     void shouldReturnAvailability() throws Exception {
-        when(appointmentService.getAvailability(LocalDate.of(2026, 7, 20)))
+        when(appointmentService.getAvailability(LocalDate.of(2026, 7, 20), 1L))
                 .thenReturn(new AvailabilityResponseDTO(
                         LocalDate.of(2026, 7, 20),
                         List.of(LocalTime.of(9, 0), LocalTime.of(9, 30))
                 ));
 
         mockMvc.perform(get("/api/v1/appointments/availability")
-                        .param("date", "2026-07-20"))
+                        .param("date", "2026-07-20")
+                        .param("serviceId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableSlots.length()").value(2));
     }

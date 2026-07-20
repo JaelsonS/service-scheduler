@@ -34,7 +34,7 @@ Feito para o desafio técnico DevClub. Empacotado como produto: API Java, SPA Re
 
 ## O que o produto faz
 
-**Visitante** escolhe data → horário livre → serviço e dados → confirmação.
+**Visitante** escolhe serviço → data → horário livre → dados → confirmação.
 
 **Cliente** (opcional) cria conta, vê e cancela os próprios agendamentos.
 
@@ -148,9 +148,9 @@ Base: `/api/v1`
 | Método | Rota | Auth | Uso |
 |--------|------|------|-----|
 | `GET` | `/services` | — | Catálogo |
-| `GET` | `/appointments/availability?date=` | — | Slots livres |
+| `GET` | `/appointments/availability?date=&serviceId=` | — | Slots livres (respeitam duração) |
 | `POST` | `/appointments` | — * | Criar agendamento |
-| `GET` | `/appointments/{id}` | — | Confirmação |
+| `GET` | `/appointments/{id}` | — | Confirmação (telefone mascarado) |
 | `POST` | `/auth/login` | — | Login admin |
 | `POST` | `/auth/refresh` · `/auth/logout` | — | Sessão JWT |
 | `POST` | `/client/auth/register` · `/login` | — | Conta cliente |

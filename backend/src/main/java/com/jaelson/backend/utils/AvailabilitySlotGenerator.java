@@ -7,35 +7,45 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Gera a grade de horários a partir de BusinessHours.
- * Slots ocupados e horários já passados no dia de hoje saem da lista —
- * o front só renderiza o que sobra, então o cliente não "escolhe" conflito.
+ * Cada slot precisa caber a duração do serviço sem sobrepor agendamentos ativos
+ * (intervalo [início, início + duração)).
  */
 public final class AvailabilitySlotGenerator {
 
     private AvailabilitySlotGenerator() {
     }
 
+    public record OccupiedInterval(LocalTime start, LocalTime end) {
+        public boolean overlaps(LocalTime candidateStart, LocalTime candidateEnd) {
+            return candidateStart.isBefore(end) && start.isBefore(candidateEnd);
+        }
+    }
+
     public static List<LocalTime> generateAvailableSlots(
             LocalDate date,
-            Set<LocalTime> occupiedTimes,
+            List<OccupiedInterval> occupied,
+            int durationMinutes,
             LocalDateTime now
     ) {
+        int safeDuration = Math.max(durationMinutes, BusinessHours.SLOT_INTERVAL_MINUTES);
         List<LocalTime> availableSlots = new ArrayList<>();
         LocalTime slot = LocalTime.of(BusinessHours.START_HOUR, 0);
-        // Último slot começa INTERVAL minutos antes do fechamento (ex.: 17:30 se fecha às 18:00).
-        LocalTime lastSlot = LocalTime.of(BusinessHours.END_HOUR, 0)
-                .minusMinutes(BusinessHours.SLOT_INTERVAL_MINUTES);
+        LocalTime dayEnd = LocalTime.of(BusinessHours.END_HOUR, 0);
+        LocalTime lastStart = dayEnd.minusMinutes(safeDuration);
 
-        while (!slot.isAfter(lastSlot)) {
-            boolean isOccupied = occupiedTimes.contains(slot);
-            boolean isPast = date.isEqual(now.toLocalDate()) && slot.isBefore(now.toLocalTime());
+        while (!slot.isAfter(lastStart)) {
+            final LocalTime candidateStart = slot;
+            final LocalTime candidateEnd = candidateStart.plusMinutes(safeDuration);
+            boolean overlaps = occupied.stream()
+                    .anyMatch(item -> item.overlaps(candidateStart, candidateEnd));
+            boolean isPast = date.isEqual(now.toLocalDate())
+                    && candidateStart.isBefore(now.toLocalTime());
 
-            if (!isOccupied && !isPast) {
-                availableSlots.add(slot);
+            if (!overlaps && !isPast) {
+                availableSlots.add(candidateStart);
             }
 
             slot = slot.plusMinutes(BusinessHours.SLOT_INTERVAL_MINUTES);
@@ -52,5 +62,14 @@ public final class AvailabilitySlotGenerator {
                 && time.getMinute() % BusinessHours.SLOT_INTERVAL_MINUTES == 0
                 && time.getSecond() == 0
                 && time.getNano() == 0;
+    }
+
+    public static boolean fitsInBusinessHours(LocalTime start, int durationMinutes) {
+        if (!isWithinBusinessHours(start)) {
+            return false;
+        }
+        LocalTime dayEnd = LocalTime.of(BusinessHours.END_HOUR, 0);
+        LocalTime end = start.plusMinutes(Math.max(durationMinutes, 1));
+        return !end.isAfter(dayEnd);
     }
 }

@@ -1,26 +1,29 @@
 package com.jaelson.backend.service;
 
 import com.jaelson.backend.config.JwtProperties;
+import com.jaelson.backend.entity.RevokedRefreshToken;
 import com.jaelson.backend.enums.UserRole;
+import com.jaelson.backend.repository.RevokedRefreshTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HexFormat;
 
 /**
  * Emite e valida JWT (access + refresh).
- * A denylist de refresh fica em memória — ok numa instância do Render;
- * se escalar horizontalmente, isso precisa ir pra Redis/banco.
+ * Refresh revogado fica no Postgres (hash SHA-256) — sobrevive a restart do Render.
  */
 @Service
 public class JwtService {
@@ -33,12 +36,17 @@ public class JwtService {
     private final JwtProperties properties;
     private final Clock clock;
     private final SecretKey signingKey;
-    private final Set<String> revokedRefreshTokens = ConcurrentHashMap.newKeySet();
+    private final RevokedRefreshTokenRepository revokedRefreshTokenRepository;
 
-    public JwtService(JwtProperties properties, Clock clock) {
+    public JwtService(
+            JwtProperties properties,
+            Clock clock,
+            RevokedRefreshTokenRepository revokedRefreshTokenRepository
+    ) {
         this.properties = properties;
         this.clock = clock;
         this.signingKey = Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
+        this.revokedRefreshTokenRepository = revokedRefreshTokenRepository;
     }
 
     public String createAccessToken(String email, UserRole role) {
@@ -54,7 +62,8 @@ public class JwtService {
     }
 
     public Claims parseRefreshToken(String token) {
-        if (revokedRefreshTokens.contains(token)) {
+        Instant now = clock.instant();
+        if (revokedRefreshTokenRepository.existsByTokenHashAndExpiresAtAfter(sha256(token), now)) {
             throw new JwtException("Token de renovação já foi invalidado");
         }
         return parseToken(token, REFRESH_TOKEN_TYPE);
@@ -72,10 +81,30 @@ public class JwtService {
         }
     }
 
+    @Transactional
     public void revokeRefreshToken(String token) {
-        if (token != null && !token.isBlank()) {
-            revokedRefreshTokens.add(token);
+        if (token == null || token.isBlank()) {
+            return;
         }
+
+        Instant expiresAt = clock.instant().plus(properties.refreshTokenExpirationDays(), ChronoUnit.DAYS);
+        try {
+            Claims claims = parseToken(token, REFRESH_TOKEN_TYPE);
+            if (claims.getExpiration() != null) {
+                expiresAt = claims.getExpiration().toInstant();
+            }
+        } catch (JwtException ignored) {
+            // Mesmo inválido, registro o hash para não reaproveitar o valor.
+        }
+
+        String hash = sha256(token);
+        RevokedRefreshToken revoked = revokedRefreshTokenRepository.findById(hash)
+                .orElseGet(RevokedRefreshToken::new);
+        revoked.setTokenHash(hash);
+        revoked.setExpiresAt(expiresAt);
+        revoked.setRevokedAt(clock.instant());
+        revokedRefreshTokenRepository.save(revoked);
+        revokedRefreshTokenRepository.deleteExpired(clock.instant());
     }
 
     public long getAccessTokenExpirationSeconds() {
@@ -115,5 +144,15 @@ public class JwtService {
         }
 
         return claims;
+    }
+
+    static String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 indisponível", exception);
+        }
     }
 }
