@@ -17,8 +17,8 @@ public record AppointmentCreateRequestDTO(
         @NotBlank(message = "Informe o telefone")
         @Size(max = 30, message = "Telefone deve ter no máximo 30 caracteres")
         @Pattern(
-                regexp = "^[0-9()+.\\- ]{10,30}$",
-                message = "Telefone em formato inválido"
+                regexp = "^\\+[1-9]\\d{7,14}$",
+                message = "Telefone inválido. Use DDI + número (ex.: +5511999998888)"
         )
         String customerPhone,
 

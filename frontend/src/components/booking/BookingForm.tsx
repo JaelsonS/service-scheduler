@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CalendarDays, CheckCircle2, Clock3, Scissors, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { createAppointment } from '../../api/appointments'
@@ -11,11 +11,13 @@ import { useAvailability } from '../../hooks/useAvailability'
 import { useServices } from '../../hooks/useServices'
 import { useToast } from '../../hooks/useToast'
 import { useAuth } from '../../auth/useAuth'
+import { isValidPhoneNumber } from '../../lib/phone'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Input } from '../ui/Input'
+import { PhoneField } from '../ui/PhoneField'
 import { Select } from '../ui/Select'
 import { BootAwareSpinner } from '../ui/Spinner'
 import { Calendar } from './Calendar'
@@ -29,7 +31,8 @@ const bookingSchema = z.object({
     .max(120, 'Nome muito longo'),
   customerPhone: z
     .string()
-    .regex(/^[0-9()+.\- ]{10,30}$/, 'Telefone inválido'),
+    .min(1, 'Informe o telefone')
+    .refine((value) => isValidPhoneNumber(value), 'Telefone inválido para o país selecionado'),
   serviceId: z.string().min(1, 'Selecione um serviço'),
   appointmentDate: z.string().min(1, 'Selecione uma data'),
   appointmentTime: z.string().min(1, 'Selecione um horário'),
@@ -92,6 +95,7 @@ export function BookingForm() {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     setError,
@@ -353,7 +357,7 @@ export function BookingForm() {
           </p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-4">
           <Input
             label="Nome"
             placeholder="Seu nome completo"
@@ -361,12 +365,19 @@ export function BookingForm() {
             error={errors.customerName?.message}
             {...register('customerName')}
           />
-          <Input
-            label="Telefone"
-            placeholder="(11) 99999-9999"
-            autoComplete="tel"
-            error={errors.customerPhone?.message}
-            {...register('customerPhone')}
+          <Controller
+            name="customerPhone"
+            control={control}
+            render={({ field }) => (
+              <PhoneField
+                label="Telefone"
+                value={field.value}
+                onChange={(value) => field.onChange(value ?? '')}
+                onBlur={field.onBlur}
+                error={errors.customerPhone?.message}
+                defaultCountry="BR"
+              />
+            )}
           />
         </div>
 

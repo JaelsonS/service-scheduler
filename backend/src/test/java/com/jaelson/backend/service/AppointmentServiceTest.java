@@ -69,7 +69,7 @@ class AppointmentServiceTest {
     void shouldCreateAppointmentWhenSlotIsAvailable() {
         AppointmentCreateRequestDTO request = new AppointmentCreateRequestDTO(
                 "Maria Silva",
-                "11999998888",
+                "+5511999998888",
                 LocalDate.of(2026, 7, 17),
                 LocalTime.of(10, 0),
                 1L
@@ -101,7 +101,7 @@ class AppointmentServiceTest {
     void shouldRejectPastTimeOnCurrentDay() {
         AppointmentCreateRequestDTO request = new AppointmentCreateRequestDTO(
                 "Maria Silva",
-                "11999998888",
+                "+5511999998888",
                 LocalDate.of(2026, 7, 16),
                 LocalTime.of(9, 0),
                 1L
@@ -117,7 +117,7 @@ class AppointmentServiceTest {
     void shouldAllowSlotThatMatchesNowOnCurrentDay() {
         AppointmentCreateRequestDTO request = new AppointmentCreateRequestDTO(
                 "Maria Silva",
-                "11999998888",
+                "+5511999998888",
                 LocalDate.of(2026, 7, 16),
                 LocalTime.of(10, 0),
                 1L
@@ -144,7 +144,7 @@ class AppointmentServiceTest {
     void shouldRejectOverlappingSlot() {
         AppointmentCreateRequestDTO request = new AppointmentCreateRequestDTO(
                 "Maria Silva",
-                "11999998888",
+                "+5511999998888",
                 LocalDate.of(2026, 7, 17),
                 LocalTime.of(10, 0),
                 1L

@@ -47,7 +47,7 @@ class AppointmentControllerTest {
         AppointmentResponseDTO response = new AppointmentResponseDTO(
                 1L,
                 "Maria Silva",
-                "11999998888",
+                "+5511999998888",
                 LocalDate.of(2026, 7, 20),
                 LocalTime.of(10, 0),
                 AppointmentStatus.AGENDADO,
@@ -63,7 +63,7 @@ class AppointmentControllerTest {
                         .content("""
                                 {
                                   "customerName": "Maria Silva",
-                                  "customerPhone": "11999998888",
+                                  "customerPhone": "+5511999998888",
                                   "appointmentDate": "2026-07-20",
                                   "appointmentTime": "10:00:00",
                                   "serviceId": 1
