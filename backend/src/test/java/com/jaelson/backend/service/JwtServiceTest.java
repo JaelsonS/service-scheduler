@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,12 +72,22 @@ class JwtServiceTest {
     @Test
     void shouldPersistRevokedRefreshTokenHash() {
         String token = jwtService.createRefreshToken("client@example.com", UserRole.CLIENT);
-        when(revokedRefreshTokenRepository.findById(any())).thenReturn(Optional.empty());
+        when(revokedRefreshTokenRepository.existsById(any())).thenReturn(false);
 
         jwtService.revokeRefreshToken(token);
 
         ArgumentCaptor<RevokedRefreshToken> captor = ArgumentCaptor.forClass(RevokedRefreshToken.class);
         verify(revokedRefreshTokenRepository).save(captor.capture());
         assertEquals(JwtService.sha256(token), captor.getValue().getTokenHash());
+    }
+
+    @Test
+    void shouldIgnoreAlreadyRevokedRefreshToken() {
+        String token = jwtService.createRefreshToken("client@example.com", UserRole.CLIENT);
+        when(revokedRefreshTokenRepository.existsById(JwtService.sha256(token))).thenReturn(true);
+
+        jwtService.revokeRefreshToken(token);
+
+        verify(revokedRefreshTokenRepository, never()).save(any());
     }
 }

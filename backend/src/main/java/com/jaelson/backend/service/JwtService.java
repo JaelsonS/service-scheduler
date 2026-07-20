@@ -8,6 +8,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,6 +82,9 @@ public class JwtService {
         }
     }
 
+    /**
+     * Logout é idempotente: revogar o mesmo refresh duas vezes não deve falhar.
+     */
     @Transactional
     public void revokeRefreshToken(String token) {
         if (token == null || token.isBlank()) {
@@ -98,13 +102,20 @@ public class JwtService {
         }
 
         String hash = sha256(token);
-        RevokedRefreshToken revoked = revokedRefreshTokenRepository.findById(hash)
-                .orElseGet(RevokedRefreshToken::new);
+        if (revokedRefreshTokenRepository.existsById(hash)) {
+            return;
+        }
+
+        RevokedRefreshToken revoked = new RevokedRefreshToken();
         revoked.setTokenHash(hash);
         revoked.setExpiresAt(expiresAt);
         revoked.setRevokedAt(clock.instant());
-        revokedRefreshTokenRepository.save(revoked);
-        revokedRefreshTokenRepository.deleteExpired(clock.instant());
+
+        try {
+            revokedRefreshTokenRepository.save(revoked);
+        } catch (DataIntegrityViolationException ignored) {
+            // Corrida: outro request já inseriu o mesmo hash — logout ok.
+        }
     }
 
     public long getAccessTokenExpirationSeconds() {

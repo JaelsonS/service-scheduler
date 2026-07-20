@@ -164,6 +164,17 @@ public class GlobalExceptionHandler {
         logger.warn("Violação de integridade no banco (sqlState={}): {}", sqlState, causeMessage);
 
         if ("23505".equals(sqlState)) {
+            String detail = causeMessage != null ? causeMessage.toLowerCase() : "";
+            if (detail.contains("revoked_refresh")) {
+                // Logout duplicado — trata como sucesso sem assustar o cliente.
+                return buildResponse(
+                        HttpStatus.OK,
+                        "TOKEN_ALREADY_REVOKED",
+                        "Sessão já encerrada",
+                        request.getRequestURI(),
+                        Map.of()
+                );
+            }
             return buildResponse(
                     HttpStatus.CONFLICT,
                     "APPOINTMENT_CONFLICT",

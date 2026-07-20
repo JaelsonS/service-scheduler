@@ -69,6 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         try {
           await logoutRequest(refreshToken)
+        } catch {
+          // Logout é best-effort: mesmo se a API falhar, limpo a sessão local.
         } finally {
           clearTokens()
           setEmail(null)

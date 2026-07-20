@@ -12,7 +12,7 @@ public interface RevokedRefreshTokenRepository extends JpaRepository<RevokedRefr
 
     boolean existsByTokenHashAndExpiresAtAfter(String tokenHash, Instant now);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM RevokedRefreshToken t WHERE t.expiresAt < :now")
     int deleteExpired(@Param("now") Instant now);
 }
