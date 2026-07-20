@@ -95,7 +95,7 @@ service-scheduler/
 │   ├── public/               # favicon, robots.txt, sitemap.xml
 │   ├── vercel.json
 │   └── .env.example
-├── docs/                     # ADRs, setup externo, screenshots, estudo
+├── docs/                     # ADRs, setup externo, screenshots
 └── README.md
 ```
 
@@ -279,5 +279,3 @@ cd frontend && npm run ci   # lint + type-check + build
 ## Autor
 
 **Jaelson Santos** — desafio técnico DevClub.
-
-Notas de estudo sobre a stack: [`docs/Estudo/README.md`](docs/Estudo/README.md).
