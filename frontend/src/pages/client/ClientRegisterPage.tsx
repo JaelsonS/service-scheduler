@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -8,37 +8,27 @@ import { getApiErrorMessage } from '../../api/client'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
-import { PhoneInput } from '../../components/ui/PhoneInput'
+import { PhoneField } from '../../components/ui/PhoneField'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { PasswordStrength } from '../../components/ui/PasswordStrength'
 import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 import { isStrongPassword } from '../../lib/password'
-import {
-  PHONE_COUNTRIES,
-  composePhone,
-  validatePhoneForCountry,
-} from '../../lib/phone'
+import { isValidPhoneNumber } from '../../lib/phone'
 
-const registerSchema = z
-  .object({
-    fullName: z.string().trim().min(2, 'Informe seu nome completo').max(120, 'Nome muito longo'),
-    countryCode: z.string().min(2),
-    localPhone: z.string().min(1, 'Informe o telefone'),
-    email: z.email('Informe um e-mail válido'),
-    password: z
-      .string()
-      .min(8, 'Senha com no mínimo 8 caracteres')
-      .max(72, 'Senha muito longa')
-      .refine(isStrongPassword, 'Senha precisa ter letras e números'),
-  })
-  .superRefine((values, context) => {
-    const country = PHONE_COUNTRIES.find((item) => item.code === values.countryCode) ?? PHONE_COUNTRIES[0]
-    const phoneError = validatePhoneForCountry(country, values.localPhone)
-    if (phoneError) {
-      context.addIssue({ code: 'custom', path: ['localPhone'], message: phoneError })
-    }
-  })
+const registerSchema = z.object({
+  fullName: z.string().trim().min(2, 'Informe seu nome completo').max(120, 'Nome muito longo'),
+  phone: z
+    .string()
+    .min(1, 'Informe o telefone')
+    .refine((value) => isValidPhoneNumber(value), 'Telefone inválido para o país selecionado'),
+  email: z.email('Informe um e-mail válido'),
+  password: z
+    .string()
+    .min(8, 'Senha com no mínimo 8 caracteres')
+    .max(72, 'Senha muito longa')
+    .refine(isStrongPassword, 'Senha precisa ter letras e números'),
+})
 
 type RegisterFormValues = z.infer<typeof registerSchema>
 
@@ -57,27 +47,20 @@ export function ClientRegisterPage() {
     mode: 'onChange',
     defaultValues: {
       fullName: '',
-      countryCode: 'BR',
-      localPhone: '',
+      phone: '',
       email: '',
       password: '',
     },
   })
 
   const passwordValue = watch('password')
-  const countryCode = watch('countryCode')
-  const phonePlaceholder = useMemo(() => {
-    const country = PHONE_COUNTRIES.find((item) => item.code === countryCode) ?? PHONE_COUNTRIES[0]
-    return country.code === 'BR' ? '11999998888' : '9'.repeat(country.minLocalDigits)
-  }, [countryCode])
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
-    const country = PHONE_COUNTRIES.find((item) => item.code === values.countryCode) ?? PHONE_COUNTRIES[0]
     try {
       await registerClient({
         fullName: values.fullName.trim(),
-        phone: composePhone(country.dial, values.localPhone),
+        phone: values.phone,
         email: values.email.trim().toLowerCase(),
         password: values.password,
       })
@@ -120,23 +103,15 @@ export function ClientRegisterPage() {
           />
 
           <Controller
-            name="countryCode"
+            name="phone"
             control={control}
-            render={({ field: countryField }) => (
-              <Controller
-                name="localPhone"
-                control={control}
-                render={({ field: phoneField }) => (
-                  <PhoneInput
-                    label="Telefone"
-                    country={countryField.value}
-                    localNumber={phoneField.value}
-                    onCountryChange={countryField.onChange}
-                    onLocalNumberChange={phoneField.onChange}
-                    placeholder={phonePlaceholder}
-                    error={errors.localPhone?.message}
-                  />
-                )}
+            render={({ field }) => (
+              <PhoneField
+                label="Telefone"
+                value={field.value}
+                onChange={(value) => field.onChange(value ?? '')}
+                onBlur={field.onBlur}
+                error={errors.phone?.message}
               />
             )}
           />
