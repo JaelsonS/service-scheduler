@@ -21,5 +21,7 @@ USER app
 
 EXPOSE 8080
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+# Fallback se o painel do Render esquecer SPRING_PROFILES_ACTIVE (log mostrou "dev" em produção).
+ENV SPRING_PROFILES_ACTIVE=prod
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

@@ -54,7 +54,7 @@ class ClientAuthServiceTest {
 
         AuthTokenResponseDTO response = clientAuthService.register(new ClientRegisterRequestDTO(
                 "Ana Silva",
-                "11999998888",
+                "+5511999998888",
                 "client@example.com",
                 "password123"
         ));
@@ -71,7 +71,7 @@ class ClientAuthServiceTest {
         when(clientUserRepository.existsByEmailIgnoreCase("client@example.com")).thenReturn(true);
 
         assertThrows(EmailAlreadyRegisteredException.class, () -> clientAuthService.register(
-                new ClientRegisterRequestDTO("Ana", "11999998888", "client@example.com", "password123")
+                new ClientRegisterRequestDTO("Ana", "+5511999998888", "client@example.com", "password123")
         ));
     }
 

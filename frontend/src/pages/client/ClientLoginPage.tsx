@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '../../api/client'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
+import { PasswordInput } from '../../components/ui/PasswordInput'
 import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 
@@ -34,7 +35,7 @@ export function ClientLoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null)
     try {
-      await loginClient(values.email, values.password)
+      await loginClient(values.email.trim().toLowerCase(), values.password)
       navigate('/minha-conta', { replace: true })
     } catch (error) {
       setSubmitError(getApiErrorMessage(error, 'Não foi possível entrar. Verifique suas credenciais.'))
@@ -68,13 +69,14 @@ export function ClientLoginPage() {
           <Input
             label="E-mail"
             type="email"
+            placeholder="seuemail@exemplo.com"
             autoComplete="email"
             error={errors.email?.message}
             {...register('email')}
           />
-          <Input
+          <PasswordInput
             label="Senha"
-            type="password"
+            placeholder="Sua senha"
             autoComplete="current-password"
             error={errors.password?.message}
             {...register('password')}

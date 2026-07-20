@@ -49,11 +49,16 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Auth de cliente precisa vir antes de /api/v1/client/** (role CLIENT).
+                        .requestMatchers(
+                                "/api/v1/client/auth/register",
+                                "/api/v1/client/auth/login",
+                                "/api/v1/client/auth/**"
+                        ).permitAll()
                         .requestMatchers(
                                 "/api/v1/services/**",
                                 "/api/v1/appointments/**",
                                 "/api/v1/auth/**",
-                                "/api/v1/client/auth/**",
                                 "/actuator/health",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

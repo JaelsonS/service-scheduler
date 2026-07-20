@@ -11,7 +11,10 @@ public record ClientRegisterRequestDTO(
         String fullName,
 
         @NotBlank(message = "Informe o telefone")
-        @Pattern(regexp = "^[0-9()+.\\- ]{10,30}$", message = "Telefone inválido")
+        @Pattern(
+                regexp = "^\\+[1-9]\\d{7,14}$",
+                message = "Telefone inválido. Use DDI + número (ex.: +5511999998888)"
+        )
         String phone,
 
         @NotBlank(message = "Informe o e-mail")
@@ -21,6 +24,10 @@ public record ClientRegisterRequestDTO(
 
         @NotBlank(message = "Informe a senha")
         @Size(min = 8, max = 72, message = "Senha deve ter entre 8 e 72 caracteres")
+        @Pattern(
+                regexp = "^(?=.*[A-Za-zÀ-ÿ])(?=.*\\d).{8,72}$",
+                message = "Senha precisa ter letras e números"
+        )
         String password
 ) {
 }

@@ -9,6 +9,7 @@ import { getApiErrorMessage } from '../../api/client'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { Input } from '../../components/ui/Input'
+import { PasswordInput } from '../../components/ui/PasswordInput'
 import { SeoHead } from '../../components/SeoHead'
 import { Spinner } from '../../components/ui/Spinner'
 
@@ -72,13 +73,14 @@ export function LoginPage() {
           <Input
             label="E-mail"
             type="email"
+            placeholder="admin@agendapro.local"
             autoComplete="email"
             error={errors.email?.message}
             {...register('email')}
           />
-          <Input
+          <PasswordInput
             label="Senha"
-            type="password"
+            placeholder="Sua senha"
             autoComplete="current-password"
             error={errors.password?.message}
             {...register('password')}
