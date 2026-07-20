@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, ChevronLeft } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
@@ -17,11 +17,14 @@ import { Card } from '../ui/Card'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Input } from '../ui/Input'
-import { PhoneField } from '../ui/PhoneField'
-import { BootAwareSpinner } from '../ui/Spinner'
+import { BootAwareSpinner, Spinner } from '../ui/Spinner'
 import { Calendar } from './Calendar'
 import { TimeSlotPicker } from './TimeSlotPicker'
 import type { ApiErrorBody } from '../../types/appointment'
+
+const PhoneField = lazy(() =>
+  import('../ui/PhoneField').then((m) => ({ default: m.PhoneField })),
+)
 
 const bookingSchema = z.object({
   customerName: z
@@ -541,20 +544,22 @@ export function BookingForm() {
                   error={errors.customerName?.message}
                   {...register('customerName')}
                 />
-                <Controller
-                  name="customerPhone"
-                  control={control}
-                  render={({ field }) => (
-                    <PhoneField
-                      label="Telefone"
-                      value={field.value}
-                      onChange={(value) => field.onChange(value ?? '')}
-                      onBlur={field.onBlur}
-                      error={errors.customerPhone?.message}
-                      defaultCountry="BR"
-                    />
-                  )}
-                />
+                <Suspense fallback={<Spinner label="Carregando telefone..." />}>
+                  <Controller
+                    name="customerPhone"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneField
+                        label="Telefone"
+                        value={field.value}
+                        onChange={(value) => field.onChange(value ?? '')}
+                        onBlur={field.onBlur}
+                        error={errors.customerPhone?.message}
+                        defaultCountry="BR"
+                      />
+                    )}
+                  />
+                </Suspense>
 
                 {/* Mobile-only actions (sidebar hidden below lg) */}
                 <div className="flex flex-col gap-2 pt-2 lg:hidden">
