@@ -25,5 +25,5 @@ dist/
 # Logs
 *.log
 
-# Caderno de estudo local (não versionar — só revisão/entrevista)
+# Caderno de estudo
 docs/Estudo/
