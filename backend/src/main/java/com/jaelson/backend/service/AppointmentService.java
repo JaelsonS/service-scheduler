@@ -16,6 +16,7 @@ import com.jaelson.backend.exception.InvalidAppointmentTimeException;
 import com.jaelson.backend.mapper.AppointmentMapper;
 import com.jaelson.backend.repository.AppointmentRepository;
 import com.jaelson.backend.utils.AvailabilitySlotGenerator;
+import com.jaelson.backend.utils.ClientTimeZones;
 import com.jaelson.backend.validation.AppointmentStatusTransitionValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +30,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +64,12 @@ public class AppointmentService {
     @Transactional
     public AppointmentResponseDTO create(AppointmentCreateRequestDTO request) {
         Service service = serviceCatalogService.findActiveServiceOrThrow(request.serviceId());
-        validateSchedule(request.appointmentDate(), request.appointmentTime(), service.getDurationMinutes());
+        validateSchedule(
+                request.appointmentDate(),
+                request.appointmentTime(),
+                service.getDurationMinutes(),
+                request.timezone()
+        );
         ensureNoOverlap(
                 request.appointmentDate(),
                 request.appointmentTime(),
@@ -86,8 +93,9 @@ public class AppointmentService {
      * só entra se a duração do serviço cabe sem sobrepor agendamentos ativos.
      */
     @Transactional(readOnly = true)
-    public AvailabilityResponseDTO getAvailability(LocalDate date, Long serviceId) {
-        if (date.isBefore(LocalDate.now(clock))) {
+    public AvailabilityResponseDTO getAvailability(LocalDate date, Long serviceId, String timezone) {
+        LocalDateTime now = nowForClient(timezone);
+        if (date.isBefore(now.toLocalDate())) {
             throw new InvalidAppointmentTimeException("Não é possível consultar disponibilidade de uma data passada");
         }
 
@@ -108,7 +116,6 @@ public class AppointmentService {
                 })
                 .toList();
 
-        LocalDateTime now = LocalDateTime.now(clock);
         List<LocalTime> availableSlots = AvailabilitySlotGenerator.generateAvailableSlots(
                 date,
                 occupied,
@@ -212,8 +219,8 @@ public class AppointmentService {
         return java.util.Optional.of(clientAuthService.requireActiveByEmail(authentication.getName()));
     }
 
-    private void validateSchedule(LocalDate date, LocalTime time, int durationMinutes) {
-        LocalDateTime now = LocalDateTime.now(clock);
+    private void validateSchedule(LocalDate date, LocalTime time, int durationMinutes, String timezone) {
+        LocalDateTime now = nowForClient(timezone);
         LocalDate today = now.toLocalDate();
 
         if (date.isBefore(today)) {
@@ -231,6 +238,12 @@ public class AppointmentService {
                     "Este horário já passou. Escolha outro"
             );
         }
+    }
+
+    /** Usa o fuso do browser do cliente; fallback no Clock da aplicação. */
+    private LocalDateTime nowForClient(String timezone) {
+        ZoneId zone = ClientTimeZones.resolve(timezone, clock.getZone());
+        return LocalDateTime.now(clock.withZone(zone));
     }
 
     /**

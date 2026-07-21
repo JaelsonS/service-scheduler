@@ -47,9 +47,11 @@ public class AppointmentController {
             LocalDate date,
             @RequestParam
             @NotNull(message = "Informe o serviço")
-            Long serviceId
+            Long serviceId,
+            @RequestParam(required = false)
+            String timezone
     ) {
-        return ResponseEntity.ok(appointmentService.getAvailability(date, serviceId));
+        return ResponseEntity.ok(appointmentService.getAvailability(date, serviceId, timezone));
     }
 
     @GetMapping("/{id}")

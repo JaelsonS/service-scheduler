@@ -72,7 +72,8 @@ class AppointmentServiceTest {
                 "+5511999998888",
                 LocalDate.of(2026, 7, 17),
                 LocalTime.of(10, 0),
-                1L
+                1L,
+                null
         );
 
         when(serviceCatalogService.findActiveServiceOrThrow(1L)).thenReturn(activeService);
@@ -104,7 +105,8 @@ class AppointmentServiceTest {
                 "+5511999998888",
                 LocalDate.of(2026, 7, 16),
                 LocalTime.of(9, 0),
-                1L
+                1L,
+                null
         );
 
         when(serviceCatalogService.findActiveServiceOrThrow(1L)).thenReturn(activeService);
@@ -120,7 +122,8 @@ class AppointmentServiceTest {
                 "+5511999998888",
                 LocalDate.of(2026, 7, 16),
                 LocalTime.of(10, 0),
-                1L
+                1L,
+                null
         );
 
         when(serviceCatalogService.findActiveServiceOrThrow(1L)).thenReturn(activeService);
@@ -147,7 +150,8 @@ class AppointmentServiceTest {
                 "+5511999998888",
                 LocalDate.of(2026, 7, 17),
                 LocalTime.of(10, 0),
-                1L
+                1L,
+                null
         );
 
         Appointment existing = new Appointment();

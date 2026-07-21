@@ -4,7 +4,7 @@ import com.jaelson.backend.enums.UserRole;
 import com.jaelson.backend.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterChain; //jakarta é o padrão do java para web, substituindo javax
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

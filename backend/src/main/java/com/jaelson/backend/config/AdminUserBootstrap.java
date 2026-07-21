@@ -2,23 +2,23 @@ package com.jaelson.backend.config;
 
 import com.jaelson.backend.entity.AdminUser;
 import com.jaelson.backend.repository.AdminUserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.core.env.Environment;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
+import org.slf4j.Logger; // Pacote de logging
+import org.slf4j.LoggerFactory; // Pacote de logging
+import org.springframework.beans.factory.annotation.Value; // Para injetar valores de propriedades
+import org.springframework.boot.ApplicationArguments; // Para lidar com argumentos de inicialização
+import org.springframework.boot.ApplicationRunner; // Para executar código após a inicialização do aplicativo
+import org.springframework.core.env.Environment; // Para acessar o ambiente e perfis ativos
+import org.springframework.security.crypto.password.PasswordEncoder; // Para codificar senhas
+import org.springframework.stereotype.Component; // Marca a classe como um componente Spring
 
-import java.util.Arrays;
+import java.util.Arrays; // Para trabalhar com arrays
 
 /**
  * Cria o primeiro admin só se a tabela estiver vazia.
  * Em prod eu bloqueio as credenciais padrão de desenvolvimento —
  * sem isso alguém poderia subir o Render e ficar com admin@agendapro.local aberto.
  */
-@Component
+@Component // Marca a classe como um componente Spring para que seja detectada e gerenciada pelo Spring Boot
 public class AdminUserBootstrap implements ApplicationRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminUserBootstrap.class);

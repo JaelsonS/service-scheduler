@@ -42,6 +42,7 @@ export interface CreateAppointmentPayload {
   appointmentDate: string
   appointmentTime: string
   serviceId: number
+  timezone?: string
 }
 
 export interface ApiErrorBody {

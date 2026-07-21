@@ -8,7 +8,7 @@ import com.jaelson.backend.entity.ClientUser;
 import com.jaelson.backend.entity.Service;
 import com.jaelson.backend.enums.AppointmentStatus;
 import com.jaelson.backend.utils.PhoneMasker;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Page; // Para lidar com paginação de resultados
 
 import java.util.List;
 

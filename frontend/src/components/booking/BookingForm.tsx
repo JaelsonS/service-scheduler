@@ -12,6 +12,7 @@ import { useServices } from '../../hooks/useServices'
 import { useToast } from '../../hooks/useToast'
 import { useAuth } from '../../auth/useAuth'
 import { isValidPhoneNumber } from '../../lib/phone'
+import { getClientTimeZone } from '../../lib/datetime'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { EmptyState } from '../ui/EmptyState'
@@ -296,6 +297,18 @@ export function BookingForm() {
     setValue('appointmentTime', '')
   }, [selectedDate, selectedServiceId, setValue])
 
+  useEffect(() => {
+    if (!selectedTime || slotsLoading) {
+      return
+    }
+    const stillAvailable = slots.some(
+      (slot) => slot === selectedTime || slot.slice(0, 5) === selectedTime.slice(0, 5),
+    )
+    if (!stillAvailable) {
+      setValue('appointmentTime', '')
+    }
+  }, [slots, slotsLoading, selectedTime, setValue])
+
   const selectedService = useMemo(
     () => services.find((service) => String(service.id) === selectedServiceId),
     [services, selectedServiceId],
@@ -338,6 +351,7 @@ export function BookingForm() {
         appointmentTime: values.appointmentTime.length === 5
           ? `${values.appointmentTime}:00`
           : values.appointmentTime,
+        timezone: getClientTimeZone(),
       })
       showToast('Agendamento criado com sucesso', 'success')
       navigate(`/confirmacao/${appointment.id}`)

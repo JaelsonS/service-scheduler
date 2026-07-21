@@ -9,9 +9,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashSet; // Para manter a ordem de inserção e evitar duplicatas
 import java.util.List;
-import java.util.Set;
+import java.util.Set; // Para trabalhar com conjuntos de elementos únicos
 
 @Configuration
 public class CorsConfig {

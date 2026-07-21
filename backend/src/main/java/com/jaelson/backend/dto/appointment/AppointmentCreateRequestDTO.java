@@ -30,6 +30,10 @@ public record AppointmentCreateRequestDTO(
 
         @NotNull(message = "Selecione o serviço")
         @Positive(message = "Serviço inválido")
-        Long serviceId
+        Long serviceId,
+
+        /** Fuso IANA do browser (ex.: Europe/Lisbon). Opcional — fallback no servidor. */
+        @Size(max = 64, message = "Timezone inválido")
+        String timezone
 ) {
 }
